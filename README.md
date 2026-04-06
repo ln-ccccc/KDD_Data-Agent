@@ -90,6 +90,7 @@ agent:
   api_key: YOUR_API_KEY
   max_steps: 16
   temperature: 0.0
+  mode: hybrid  # react | hybrid
 
 run:
   output_dir: artifacts/runs
@@ -108,10 +109,16 @@ Config fields:
 | `agent.api_key` | API key, read directly from the config file. |
 | `agent.max_steps` | Maximum ReAct steps per task. |
 | `agent.temperature` | Sampling temperature. |
+| `agent.mode` | Agent mode. `react` runs pure ReAct; `hybrid` first generates a high-level plan then executes via ReAct. Default: `hybrid`. |
 | `run.output_dir` | Output directory for run artifacts. |
 | `run.run_id` | Optional run directory name. Defaults to a UTC timestamp if omitted. Must be a single directory name; existing run directories are rejected. |
 | `run.max_workers` | Parallel worker count for `run-benchmark`. |
 | `run.task_timeout_seconds` | Maximum wall-clock time per task. Set to `0` or a negative value to disable the task-level timeout. |
+
+## Agent Modes
+
+- react: Classic ReAct loop with tool calls and final `answer`.
+- hybrid: Plan-and-Execute + ReAct. The agent first produces a concise high-level plan, then follows it in a ReAct loop. This is the default.
 
 ## CLI
 
@@ -222,4 +229,5 @@ artifacts/runs/<run_id>/summary.json
 | `src/data_agent_baseline/tools/registry.py` | Tool registration and terminal `answer` |
 | `src/data_agent_baseline/agents/prompt.py` | System prompt, task prompt, observation prompt |
 | `src/data_agent_baseline/agents/react.py` | ReAct runtime with JSON action protocol |
+| `src/data_agent_baseline/agents/plan_execute.py` | Hybrid planner that produces a plan and invokes ReAct for execution |
 | `src/data_agent_baseline/run/runner.py` | Single-task and benchmark execution |

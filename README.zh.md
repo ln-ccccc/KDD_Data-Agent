@@ -90,6 +90,7 @@ agent:
   api_key: YOUR_API_KEY
   max_steps: 16
   temperature: 0.0
+  mode: hybrid  # react | hybrid
 
 run:
   output_dir: artifacts/runs
@@ -108,10 +109,16 @@ run:
 | `agent.api_key` | API key，直接从配置文件读取。 |
 | `agent.max_steps` | 单个任务允许的最大 ReAct 步数。 |
 | `agent.temperature` | 模型采样温度。 |
+| `agent.mode` | Agent 运行模式。`react` 为纯 ReAct；`hybrid` 为先规划后执行（Plan-and-Execute）再以 ReAct 推进。默认 `hybrid`。 |
 | `run.output_dir` | 运行产物输出目录。 |
 | `run.run_id` | 可选，指定运行目录名。不传时默认使用 UTC 时间戳；必须是单个目录名，已存在会报错。 |
 | `run.max_workers` | `run-benchmark` 并行 worker 数。 |
 | `run.task_timeout_seconds` | 单个任务允许的最长墙钟时间。设为 `0` 或负数可关闭任务级超时。 |
+
+## Agent 模式
+
+- react：经典 ReAct 回合制工具调用，最终通过 `answer` 结束。
+- hybrid：先由规划器生成简洁的高层 Plan，再按 ReAct 执行。该模式为默认值。
 
 ## CLI
 
@@ -222,4 +229,5 @@ artifacts/runs/<run_id>/summary.json
 | `src/data_agent_baseline/tools/registry.py` | 工具注册与终止型 `answer` |
 | `src/data_agent_baseline/agents/prompt.py` | system prompt、task prompt、observation prompt |
 | `src/data_agent_baseline/agents/react.py` | 基于 JSON action 协议的 ReAct runtime |
+| `src/data_agent_baseline/agents/plan_execute.py` | 混合模式规划器：先产出 Plan，再调用 ReAct 执行 |
 | `src/data_agent_baseline/run/runner.py` | 单任务和批量运行逻辑 |
