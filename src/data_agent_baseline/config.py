@@ -29,6 +29,9 @@ class AgentConfig:
     max_steps: int = 16
     temperature: float = 0.0
     mode: str = "hybrid"
+    untrusted_max_chars: int = 1200
+    untrusted_max_lines: int = 24
+    untrusted_max_items: int = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +78,15 @@ def load_app_config(config_path: Path) -> AppConfig:
         max_steps=int(agent_payload.get("max_steps", agent_defaults.max_steps)),
         temperature=float(agent_payload.get("temperature", agent_defaults.temperature)),
         mode=str(agent_payload.get("mode", agent_defaults.mode)),
+        untrusted_max_chars=int(
+            agent_payload.get("untrusted_max_chars", agent_defaults.untrusted_max_chars)
+        ),
+        untrusted_max_lines=int(
+            agent_payload.get("untrusted_max_lines", agent_defaults.untrusted_max_lines)
+        ),
+        untrusted_max_items=int(
+            agent_payload.get("untrusted_max_items", agent_defaults.untrusted_max_items)
+        ),
     )
     raw_run_id = run_payload.get("run_id")
     run_id = run_defaults.run_id

@@ -5,6 +5,10 @@ import re
 from dataclasses import dataclass
 
 from data_agent_baseline.agents.model import ModelAdapter, ModelMessage, ModelStep
+from data_agent_baseline.agents.observation_security import (
+    ExposureConfig,
+    build_observation_exposure,
+)
 from data_agent_baseline.agents.prompt import (
     REACT_SYSTEM_PROMPT,
     build_observation_prompt,
@@ -19,6 +23,9 @@ from data_agent_baseline.tools.registry import ToolRegistry
 @dataclass(frozen=True, slots=True)
 class ReActAgentConfig:
     max_steps: int = 16
+    untrusted_max_chars: int = 1200
+    untrusted_max_lines: int = 24
+    untrusted_max_items: int = 12
 
 
 def _strip_json_fence(raw_response: str) -> str:
@@ -89,8 +96,9 @@ class ReActAgent:
         messages.append(ModelMessage(role="user", content=build_task_prompt(task)))
         for step in state.steps:
             messages.append(ModelMessage(role="assistant", content=step.raw_response))
+            observation_payload = step.observation_exposure or step.observation
             messages.append(
-                ModelMessage(role="user", content=build_observation_prompt(step.observation))
+                ModelMessage(role="user", content=build_observation_prompt(observation_payload))
             )
         return messages
 
@@ -106,6 +114,15 @@ class ReActAgent:
                     "tool": model_step.action,
                     "content": tool_result.content,
                 }
+                observation_ref = f"obs-{step_index:03d}"
+                exposure = build_observation_exposure(
+                    observation,
+                    config=ExposureConfig(
+                        max_chars=self.config.untrusted_max_chars,
+                        max_lines=self.config.untrusted_max_lines,
+                        max_items=self.config.untrusted_max_items,
+                    ),
+                )
                 step_record = StepRecord(
                     step_index=step_index,
                     thought=model_step.thought,
@@ -114,6 +131,19 @@ class ReActAgent:
                     raw_response=raw_response,
                     observation=observation,
                     ok=tool_result.ok,
+                    observation_ref=observation_ref,
+                    observation_trust=exposure.trust,
+                    taint_level=exposure.taint_level,
+                    source_refs=tuple(
+                        item.observation_ref
+                        for item in state.steps
+                        if item.observation_ref and item.observation_trust == "untrusted"
+                    ),
+                    observation_exposure={
+                        "ref": observation_ref,
+                        "summary": exposure.summary,
+                        "exposed": exposure.exposed,
+                    },
                 )
                 state.steps.append(step_record)
                 if tool_result.is_terminal:
@@ -128,6 +158,15 @@ class ReActAgent:
                     "ok": False,
                     "error": error_msg,
                 }
+                observation_ref = f"obs-{step_index:03d}"
+                exposure = build_observation_exposure(
+                    observation,
+                    config=ExposureConfig(
+                        max_chars=self.config.untrusted_max_chars,
+                        max_lines=self.config.untrusted_max_lines,
+                        max_items=self.config.untrusted_max_items,
+                    ),
+                )
                 state.steps.append(
                     StepRecord(
                         step_index=step_index,
@@ -137,6 +176,19 @@ class ReActAgent:
                         raw_response=raw_response,
                         observation=observation,
                         ok=False,
+                        observation_ref=observation_ref,
+                        observation_trust=exposure.trust,
+                        taint_level=exposure.taint_level,
+                        source_refs=tuple(
+                            item.observation_ref
+                            for item in state.steps
+                            if item.observation_ref and item.observation_trust == "untrusted"
+                        ),
+                        observation_exposure={
+                            "ref": observation_ref,
+                            "summary": exposure.summary,
+                            "exposed": exposure.exposed,
+                        },
                     )
                 )
 
