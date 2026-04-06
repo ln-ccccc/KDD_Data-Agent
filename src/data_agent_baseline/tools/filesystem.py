@@ -68,7 +68,11 @@ def read_csv_preview(task: PublicTask, relative_path: str, *, max_rows: int = 20
 
 def read_json_preview(task: PublicTask, relative_path: str, *, max_chars: int = 4000) -> dict[str, object]:
     path = resolve_context_path(task, relative_path)
-    payload = json.loads(path.read_text())
+    try:
+        payload = json.loads(path.read_text(), strict=False)
+    except json.JSONDecodeError:
+        # If it's not valid JSON, just read as text
+        return read_doc_preview(task, relative_path, max_chars=max_chars)
     preview = json.dumps(payload, ensure_ascii=False, indent=2)
     return {
         "path": relative_path,

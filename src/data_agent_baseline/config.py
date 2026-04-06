@@ -23,11 +23,12 @@ class DatasetConfig:
 
 @dataclass(frozen=True, slots=True)
 class AgentConfig:
-    model: str = "gpt-4.1-mini"
-    api_base: str = "https://api.openai.com/v1"
+    model: str = "gemini-2.5-flash"
+    api_base: str = "https://ai-gateway-internal.dp.tech"
     api_key: str = ""
     max_steps: int = 16
     temperature: float = 0.0
+    mode: str = "hybrid"
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +74,7 @@ def load_app_config(config_path: Path) -> AppConfig:
         api_key=str(agent_payload.get("api_key", agent_defaults.api_key)),
         max_steps=int(agent_payload.get("max_steps", agent_defaults.max_steps)),
         temperature=float(agent_payload.get("temperature", agent_defaults.temperature)),
+        mode=str(agent_payload.get("mode", agent_defaults.mode)),
     )
     raw_run_id = run_payload.get("run_id")
     run_id = run_defaults.run_id

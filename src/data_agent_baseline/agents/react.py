@@ -120,9 +120,13 @@ class ReActAgent:
                     state.answer = tool_result.answer
                     break
             except Exception as exc:
+                error_msg = str(exc)
+                if "Invalid control character" in error_msg:
+                    error_msg += " - DO NOT use literal newlines inside JSON strings. Use \\n instead."
+                
                 observation = {
                     "ok": False,
-                    "error": str(exc),
+                    "error": error_msg,
                 }
                 state.steps.append(
                     StepRecord(

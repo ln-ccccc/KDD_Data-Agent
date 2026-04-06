@@ -25,12 +25,20 @@ Keep reasoning concise and grounded in the observed data.
 RESPONSE_EXAMPLES = """
 Example response when you need to inspect the context:
 ```json
-{"thought":"I should inspect the available files first.","action":"list_context","action_input":{"max_depth":4}}
+{
+  "thought": "Plan:\n1. List available files.\n2. Read knowledge.md to understand the database structure.\nI will start by listing the context.",
+  "action": "list_context",
+  "action_input": {"max_depth": 4}
+}
 ```
 
 Example response when you have the final answer:
 ```json
-{"thought":"I have the final result table.","action":"answer","action_input":{"columns":["average_long_shots"],"rows":[["63.5"]]}}
+{
+  "thought": "I have verified the results through the database query and matched them against the requested format in the question.",
+  "action": "answer",
+  "action_input": {"columns": ["average_long_shots"], "rows": [["63.5"]]}
+}
 ```
 """.strip()
 
