@@ -24,7 +24,7 @@ class DatasetConfig:
 @dataclass(frozen=True, slots=True)
 class AgentConfig:
     model: str = "gemini-2.5-flash"
-    api_base: str = "https://ai-gateway-internal.dp.tech"
+    api_base: str = ""
     api_key: str = ""
     max_steps: int = 16
     temperature: float = 0.0
