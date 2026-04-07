@@ -3,8 +3,8 @@ dataset:
 
 agent:
   model: gemini-2.5-flash
-  api_base: https://ai-gateway-internal.dp.tech
-  api_key: sk-d4dsCuivijAKhvF8Auk4kg
+  api_base: 
+  api_key: 
   max_steps: 16
   temperature: 0.0
 
