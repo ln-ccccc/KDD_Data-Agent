@@ -13,6 +13,7 @@ from data_agent_baseline.tools.filesystem import (
 )
 from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
+from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
 MAX_EXECUTE_PYTHON_CODE_CHARS = 12000
@@ -62,6 +63,7 @@ def _validate_tool_action_input(action: str, action_input: dict[str, Any]) -> No
                 f"execute_python blocked by policy due to disallowed pattern: {pattern}"
             )
 
+
 # 文本工具：列出上下文目录树，用于获取任务上下文的目录结构
 def _list_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     max_depth = int(action_input.get("max_depth", 4))
@@ -96,6 +98,13 @@ def _execute_context_sql(task: PublicTask, action_input: dict[str, Any]) -> Tool
     sql = str(action_input["sql"])
     limit = int(action_input.get("limit", 200))
     return ToolExecutionResult(ok=True, content=execute_read_only_sql(path, sql, limit=limit))
+
+
+def _execute_duckdb_sql(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    sql = str(action_input["sql"])
+    limit = int(action_input.get("limit", 200))
+    content = execute_duckdb_sql(task.context_dir, sql, limit=limit)
+    return ToolExecutionResult(ok=bool(content.get("success")), content=content)
 
 
 def _execute_python(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -167,6 +176,11 @@ def create_default_tool_registry() -> ToolRegistry:
                 "rows": [["value_1"]],
             },
         ),
+        "execute_duckdb_sql": ToolSpec(
+            name="execute_duckdb_sql",
+            description="Run a SQL query via DuckDB in the context directory. Can query CSV, Parquet, and JSON files directly (e.g., SELECT * FROM 'data.csv'). IMPORTANT: To query nested arrays in JSON (like {'records': [...]}), use `read_json_auto('file.json')` and UNNEST, or `SELECT * FROM (SELECT unnest(records) as r FROM read_json_auto('file.json'))`.",
+            input_schema={"sql": "SELECT * FROM 'data.csv'", "limit": 200},
+        ),
         "execute_context_sql": ToolSpec(
             name="execute_context_sql",
             description="Run a read-only SQL query against a sqlite/db file inside context.",
@@ -211,6 +225,7 @@ def create_default_tool_registry() -> ToolRegistry:
     }
     handlers = {
         "answer": _answer,
+        "execute_duckdb_sql": _execute_duckdb_sql,
         "execute_context_sql": _execute_context_sql,
         "execute_python": _execute_python,
         "inspect_sqlite_schema": _inspect_sqlite_schema,

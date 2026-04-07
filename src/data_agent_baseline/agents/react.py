@@ -5,10 +5,6 @@ import re
 from dataclasses import dataclass
 
 from data_agent_baseline.agents.model import ModelAdapter, ModelMessage, ModelStep
-from data_agent_baseline.agents.observation_security import (
-    ExposureConfig,
-    build_observation_exposure,
-)
 from data_agent_baseline.agents.prompt import (
     REACT_SYSTEM_PROMPT,
     build_observation_prompt,
@@ -19,14 +15,9 @@ from data_agent_baseline.agents.runtime import AgentRunResult, AgentRuntimeState
 from data_agent_baseline.benchmark.schema import PublicTask
 from data_agent_baseline.tools.registry import ToolRegistry
 
-
 @dataclass(frozen=True, slots=True)
 class ReActAgentConfig:
     max_steps: int = 16
-    untrusted_max_chars: int = 1200
-    untrusted_max_lines: int = 24
-    untrusted_max_items: int = 12
-
 
 def _strip_json_fence(raw_response: str) -> str:
     text = raw_response.strip()
@@ -40,7 +31,15 @@ def _strip_json_fence(raw_response: str) -> str:
 
 
 def _load_single_json_object(text: str) -> dict[str, object]:
-    payload, end = json.JSONDecoder().raw_decode(text)
+    try:
+        # Strict loading first
+        payload, end = json.JSONDecoder(strict=False).raw_decode(text)
+    except json.JSONDecodeError:
+        # If it fails, try to aggressively clean up control characters
+        # Common issue: models putting literal newlines inside JSON string values instead of \n
+        cleaned_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text)
+        payload, end = json.JSONDecoder(strict=False).raw_decode(cleaned_text)
+        
     remainder = text[end:].strip()
     if remainder:
         cleaned_remainder = re.sub(r"(?:\\[nrt])+", "", remainder).strip()
@@ -53,8 +52,13 @@ def _load_single_json_object(text: str) -> dict[str, object]:
 
 def parse_model_step(raw_response: str) -> ModelStep:
     normalized = _strip_json_fence(raw_response)
-    payload = _load_single_json_object(normalized)
-
+    
+    # Sometimes model might generate invalid JSON, wrap in try/except
+    try:
+        payload = _load_single_json_object(normalized)
+    except Exception as exc:
+        raise ValueError(f"Failed to parse model response as JSON: {exc}")
+    
     thought = payload.get("thought", "")
     action = payload.get("action")
     action_input = payload.get("action_input", {})
@@ -96,9 +100,8 @@ class ReActAgent:
         messages.append(ModelMessage(role="user", content=build_task_prompt(task)))
         for step in state.steps:
             messages.append(ModelMessage(role="assistant", content=step.raw_response))
-            observation_payload = step.observation_exposure or step.observation
             messages.append(
-                ModelMessage(role="user", content=build_observation_prompt(observation_payload))
+                ModelMessage(role="user", content=build_observation_prompt(step.observation))
             )
         return messages
 
@@ -114,15 +117,6 @@ class ReActAgent:
                     "tool": model_step.action,
                     "content": tool_result.content,
                 }
-                observation_ref = f"obs-{step_index:03d}"
-                exposure = build_observation_exposure(
-                    observation,
-                    config=ExposureConfig(
-                        max_chars=self.config.untrusted_max_chars,
-                        max_lines=self.config.untrusted_max_lines,
-                        max_items=self.config.untrusted_max_items,
-                    ),
-                )
                 step_record = StepRecord(
                     step_index=step_index,
                     thought=model_step.thought,
@@ -131,19 +125,6 @@ class ReActAgent:
                     raw_response=raw_response,
                     observation=observation,
                     ok=tool_result.ok,
-                    observation_ref=observation_ref,
-                    observation_trust=exposure.trust,
-                    taint_level=exposure.taint_level,
-                    source_refs=tuple(
-                        item.observation_ref
-                        for item in state.steps
-                        if item.observation_ref and item.observation_trust == "untrusted"
-                    ),
-                    observation_exposure={
-                        "ref": observation_ref,
-                        "summary": exposure.summary,
-                        "exposed": exposure.exposed,
-                    },
                 )
                 state.steps.append(step_record)
                 if tool_result.is_terminal:
@@ -158,15 +139,6 @@ class ReActAgent:
                     "ok": False,
                     "error": error_msg,
                 }
-                observation_ref = f"obs-{step_index:03d}"
-                exposure = build_observation_exposure(
-                    observation,
-                    config=ExposureConfig(
-                        max_chars=self.config.untrusted_max_chars,
-                        max_lines=self.config.untrusted_max_lines,
-                        max_items=self.config.untrusted_max_items,
-                    ),
-                )
                 state.steps.append(
                     StepRecord(
                         step_index=step_index,
@@ -176,19 +148,6 @@ class ReActAgent:
                         raw_response=raw_response,
                         observation=observation,
                         ok=False,
-                        observation_ref=observation_ref,
-                        observation_trust=exposure.trust,
-                        taint_level=exposure.taint_level,
-                        source_refs=tuple(
-                            item.observation_ref
-                            for item in state.steps
-                            if item.observation_ref and item.observation_trust == "untrusted"
-                        ),
-                        observation_exposure={
-                            "ref": observation_ref,
-                            "summary": exposure.summary,
-                            "exposed": exposure.exposed,
-                        },
                     )
                 )
 

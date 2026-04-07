@@ -15,11 +15,6 @@ class StepRecord:
     raw_response: str
     observation: dict[str, Any]
     ok: bool
-    observation_ref: str | None = None
-    observation_trust: str = "trusted"
-    taint_level: str = "none"
-    source_refs: tuple[str, ...] = ()
-    observation_exposure: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

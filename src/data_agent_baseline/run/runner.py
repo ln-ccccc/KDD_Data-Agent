@@ -19,15 +19,6 @@ from data_agent_baseline.config import AppConfig
 from data_agent_baseline.tools.registry import ToolRegistry, create_default_tool_registry
 
 
-def _react_agent_config_from_app(config: AppConfig) -> ReActAgentConfig:
-    return ReActAgentConfig(
-        max_steps=config.agent.max_steps,
-        untrusted_max_chars=getattr(config.agent, "untrusted_max_chars", 1200),
-        untrusted_max_lines=getattr(config.agent, "untrusted_max_lines", 24),
-        untrusted_max_items=getattr(config.agent, "untrusted_max_items", 12),
-    )
-
-
 @dataclass(frozen=True, slots=True)
 class TaskRunArtifacts:
     task_id: str
@@ -120,13 +111,13 @@ def _run_single_task_core(
         agent = PlanAndExecuteAgent(
             model=selected_model,
             tools=selected_tools,
-            config=_react_agent_config_from_app(config),
+            config=ReActAgentConfig(max_steps=config.agent.max_steps),
         )
     else:
         agent = ReActAgent(
             model=selected_model,
             tools=selected_tools,
-            config=_react_agent_config_from_app(config),
+            config=ReActAgentConfig(max_steps=config.agent.max_steps),
         )
     run_result = agent.run(task)
     return run_result.to_dict()
