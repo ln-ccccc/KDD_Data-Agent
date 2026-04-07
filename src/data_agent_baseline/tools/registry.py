@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 from data_agent_baseline.benchmark.schema import AnswerTable, PublicTask
@@ -73,13 +76,28 @@ def _list_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecuti
 def _read_csv(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     path = str(action_input["path"])
     max_rows = int(action_input.get("max_rows", 20))
-    return ToolExecutionResult(ok=True, content=read_csv_preview(task, path, max_rows=max_rows))
+    res = read_csv_preview(task, path, max_rows=max_rows)
+    res["cheat_sheet"] = _get_cheat_sheet("csv")
+    return ToolExecutionResult(ok=True, content=res)
+
+def _get_cheat_sheet(topic: str) -> str:
+    cheat_sheet_dir = Path(__file__).resolve().parents[4] / "artifacts" / "cheat_sheets"
+    file_path = cheat_sheet_dir / f"{topic}_hints.md"
+    if file_path.exists():
+        try:
+            with open(file_path, "r") as f:
+                return f"\n\n[YOUR PREVIOUS LEARNINGS ON {topic.upper()}]\n" + f.read()
+        except Exception:
+            pass
+    return ""
 
 # 文本工具：读取JSON文件预览，用于快速查看JSON文件的内容
 def _read_json(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     path = str(action_input["path"])
     max_chars = int(action_input.get("max_chars", 4000))
-    return ToolExecutionResult(ok=True, content=read_json_preview(task, path, max_chars=max_chars))
+    res = read_json_preview(task, path, max_chars=max_chars)
+    res["cheat_sheet"] = _get_cheat_sheet("json")
+    return ToolExecutionResult(ok=True, content=res)
 
 # 文本工具：读取DOCX文件预览，用于快速查看DOCX文件的内容
 def _read_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -90,7 +108,9 @@ def _read_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionRe
 
 def _inspect_sqlite_schema(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     path = resolve_context_path(task, str(action_input["path"]))
-    return ToolExecutionResult(ok=True, content=inspect_sqlite_schema(path))
+    res = inspect_sqlite_schema(path)
+    res["cheat_sheet"] = _get_cheat_sheet("sqlite")
+    return ToolExecutionResult(ok=True, content=res)
 
 
 def _execute_context_sql(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -115,6 +135,27 @@ def _execute_python(task: PublicTask, action_input: dict[str, Any]) -> ToolExecu
         timeout_seconds=EXECUTE_PYTHON_TIMEOUT_SECONDS,
     )
     return ToolExecutionResult(ok=bool(content.get("success")), content=content)
+
+
+def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    topic = str(action_input.get("topic", "general"))
+    error_pattern = str(action_input.get("error_pattern", ""))
+    solution = str(action_input.get("solution", ""))
+    reason = str(action_input.get("reason", ""))
+
+    cheat_sheet_dir = Path(__file__).resolve().parents[4] / "artifacts" / "cheat_sheets"
+    cheat_sheet_dir.mkdir(parents=True, exist_ok=True)
+    file_path = cheat_sheet_dir / f"{topic}_hints.md"
+
+    entry = f"\n\n### Learned from Task {task.task_id}\n"
+    entry += f"- **Error Pattern:** {error_pattern}\n"
+    entry += f"- **Solution:** {solution}\n"
+    entry += f"- **Reasoning:** {reason}\n"
+
+    with open(file_path, "a") as f:
+        f.write(entry)
+
+    return ToolExecutionResult(ok=True, content={"success": True, "message": f"Cheat sheet for '{topic}' updated successfully."})
 
 
 def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -222,9 +263,21 @@ def create_default_tool_registry() -> ToolRegistry:
             description="Read a preview of a JSON file inside context.",
             input_schema={"path": "relative/path/to/file.json", "max_chars": 4000},
         ),
+    "update_cheat_sheet": ToolSpec(
+            name="update_cheat_sheet",
+            description="Record a successful solution to a previously encountered error. Use this to help yourself in future tasks.",
+            input_schema={
+                "topic": "e.g., 'json', 'csv', 'duckdb', 'sqlite'",
+                "error_pattern": "The error message you encountered",
+                "solution": "The exact code/SQL that fixed it",
+                "reason": "Why the solution worked"
+            },
+        ),
     }
+
     handlers = {
         "answer": _answer,
+        "update_cheat_sheet": _update_cheat_sheet,
         "execute_duckdb_sql": _execute_duckdb_sql,
         "execute_context_sql": _execute_context_sql,
         "execute_python": _execute_python,
