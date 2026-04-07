@@ -13,6 +13,7 @@ from data_agent_baseline.tools.filesystem import (
     read_doc_preview,
     read_json_preview,
     resolve_context_path,
+    get_data_schema,
 )
 from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
@@ -73,6 +74,11 @@ def _list_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecuti
     return ToolExecutionResult(ok=True, content=list_context_tree(task, max_depth=max_depth))
 
 # 文本工具：读取CSV文件预览，用于快速查看CSV文件的内容
+def _get_data_schema(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    path = str(action_input["path"])
+    return ToolExecutionResult(ok=True, content=get_data_schema(task, path))
+
+
 def _read_csv(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     path = str(action_input["path"])
     max_rows = int(action_input.get("max_rows", 20))
@@ -238,6 +244,11 @@ def create_default_tool_registry() -> ToolRegistry:
                 "code": "import os\nprint(sorted(os.listdir('.')))",
             },
         ),
+        "get_data_schema": ToolSpec(
+            name="get_data_schema",
+            description="Get the column names and data types of a CSV, JSON, Parquet, or Excel file inside context. ALWAYS use this before querying a file for the first time.",
+            input_schema={"path": "relative/path/to/file.csv"},
+        ),
         "inspect_sqlite_schema": ToolSpec(
             name="inspect_sqlite_schema",
             description="Inspect tables and columns in a sqlite/db file inside context.",
@@ -282,6 +293,7 @@ def create_default_tool_registry() -> ToolRegistry:
         "execute_context_sql": _execute_context_sql,
         "execute_python": _execute_python,
         "inspect_sqlite_schema": _inspect_sqlite_schema,
+        "get_data_schema": _get_data_schema,
         "list_context": _list_context,
         "read_csv": _read_csv,
         "read_doc": _read_doc,

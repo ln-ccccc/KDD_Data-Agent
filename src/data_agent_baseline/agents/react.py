@@ -97,7 +97,22 @@ class ReActAgent:
             system_prompt=self.system_prompt,
         )
         messages = [ModelMessage(role="system", content=system_content)]
-        messages.append(ModelMessage(role="user", content=build_task_prompt(task)))
+        
+        # Initial user message with task and context overview
+        task_prompt = build_task_prompt(task)
+        
+        # Add context overview to the first prompt to prevent "blind querying"
+        try:
+            from data_agent_baseline.tools.filesystem import list_context_tree
+            context_tree = list_context_tree(task, max_depth=2)
+            files = [e["path"] for e in context_tree.get("entries", []) if e["kind"] == "file"]
+            if files:
+                task_prompt += f"\n\nAvailable files in context/:\n- " + "\n- ".join(files)
+        except Exception:
+            pass
+            
+        messages.append(ModelMessage(role="user", content=task_prompt))
+        
         for step in state.steps:
             messages.append(ModelMessage(role="assistant", content=step.raw_response))
             messages.append(
