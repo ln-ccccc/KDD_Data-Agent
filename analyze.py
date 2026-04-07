@@ -48,4 +48,4 @@ def analyze_traces(run_dir):
         print(f"  Tasks: {', '.join(tasks[:5])}{'...' if len(tasks)>5 else ''}")
 
 if __name__ == "__main__":
-    analyze_traces("artifacts/runs/duckdb_test_all")
+    analyze_traces("artifacts/runs/duckdb_test_all_v2")
