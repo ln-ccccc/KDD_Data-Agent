@@ -1,3 +1,5 @@
+# schema for agent runtime state
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -8,6 +10,9 @@ from data_agent_baseline.benchmark.schema import AnswerTable
 
 @dataclass(frozen=True, slots=True)
 class StepRecord:
+    """
+    记录代理运行中的一个步骤。
+    """
     step_index: int
     thought: str
     action: str
@@ -15,6 +20,8 @@ class StepRecord:
     raw_response: str
     observation: dict[str, Any]
     ok: bool
+    llm_elapsed_seconds: float | None = None
+    tool_elapsed_seconds: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -22,6 +29,9 @@ class StepRecord:
 
 @dataclass(slots=True)
 class AgentRuntimeState:
+    """
+    记录代理运行时的状态。
+    """
     steps: list[StepRecord] = field(default_factory=list)
     answer: AnswerTable | None = None
     failure_reason: str | None = None
@@ -29,6 +39,9 @@ class AgentRuntimeState:
 
 @dataclass(frozen=True, slots=True)
 class AgentRunResult:
+    """
+    记录代理运行结果。
+    """
     task_id: str
     answer: AnswerTable | None
     steps: list[StepRecord]

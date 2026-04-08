@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from time import perf_counter
 
 from data_agent_baseline.agents.model import ModelAdapter, ModelMessage, ModelStep
 from data_agent_baseline.agents.prompt import (
@@ -97,14 +98,26 @@ class ReActAgent:
     def run(self, task: PublicTask) -> AgentRunResult:
         state = AgentRuntimeState()
         for step_index in range(1, self.config.max_steps + 1):
+            llm_started_at = perf_counter()
             raw_response = self.model.complete(self._build_messages(task, state))
+            llm_elapsed = round(perf_counter() - llm_started_at, 6)
             try:
                 model_step = parse_model_step(raw_response)
+                tool_started_at = perf_counter()
                 tool_result = self.tools.execute(task, model_step.action, model_step.action_input)
+                tool_elapsed = round(perf_counter() - tool_started_at, 6)
+                truncated = False
+                if isinstance(tool_result.content, dict):
+                    truncated = bool(tool_result.content.get("truncated", False))
                 observation = {
                     "ok": tool_result.ok,
                     "tool": model_step.action,
                     "content": tool_result.content,
+                    "meta": {
+                        "llm_elapsed_seconds": llm_elapsed,
+                        "tool_elapsed_seconds": tool_elapsed,
+                        "truncated": truncated,
+                    },
                 }
                 step_record = StepRecord(
                     step_index=step_index,
@@ -114,6 +127,8 @@ class ReActAgent:
                     raw_response=raw_response,
                     observation=observation,
                     ok=tool_result.ok,
+                    llm_elapsed_seconds=llm_elapsed,
+                    tool_elapsed_seconds=tool_elapsed,
                 )
                 state.steps.append(step_record)
                 if tool_result.is_terminal:
@@ -127,6 +142,9 @@ class ReActAgent:
                 observation = {
                     "ok": False,
                     "error": error_msg,
+                    "meta": {
+                        "llm_elapsed_seconds": llm_elapsed,
+                    },
                 }
                 state.steps.append(
                     StepRecord(
@@ -137,6 +155,7 @@ class ReActAgent:
                         raw_response=raw_response,
                         observation=observation,
                         ok=False,
+                        llm_elapsed_seconds=llm_elapsed,
                     )
                 )
 

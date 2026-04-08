@@ -5,6 +5,8 @@ from pathlib import Path
 
 import yaml
 
+from data_agent_baseline.core.types import RetryPolicy, TraceLevel
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -29,6 +31,8 @@ class AgentConfig:
     max_steps: int = 16
     temperature: float = 0.0
     mode: str = "hybrid"
+    seed: int | None = None
+    retry: RetryPolicy = field(default_factory=RetryPolicy)
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +41,7 @@ class RunConfig:
     run_id: str | None = None
     max_workers: int = 4
     task_timeout_seconds: int = 600
+    trace_level: TraceLevel = "standard"
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +70,13 @@ def load_app_config(config_path: Path) -> AppConfig:
     agent_payload = payload.get("agent", {})
     run_payload = payload.get("run", {})
 
+    retry_payload = agent_payload.get("retry", {}) or {}
+    retry_defaults = agent_defaults.retry.normalized()
+    retry_policy = RetryPolicy(
+        max_retries=int(retry_payload.get("max_retries", retry_defaults.max_retries)),
+        backoff_seconds=float(retry_payload.get("backoff_seconds", retry_defaults.backoff_seconds)),
+    ).normalized()
+
     dataset_config = DatasetConfig(
         root_path=_path_value(dataset_payload.get("root_path"), dataset_defaults.root_path),
     )
@@ -75,6 +87,8 @@ def load_app_config(config_path: Path) -> AppConfig:
         max_steps=int(agent_payload.get("max_steps", agent_defaults.max_steps)),
         temperature=float(agent_payload.get("temperature", agent_defaults.temperature)),
         mode=str(agent_payload.get("mode", agent_defaults.mode)),
+        seed=agent_payload.get("seed", agent_defaults.seed),
+        retry=retry_policy,
     )
     raw_run_id = run_payload.get("run_id")
     run_id = run_defaults.run_id
@@ -82,10 +96,15 @@ def load_app_config(config_path: Path) -> AppConfig:
         normalized_run_id = str(raw_run_id).strip()
         run_id = normalized_run_id or None
 
+    trace_level_raw = str(run_payload.get("trace_level", run_defaults.trace_level)).strip().lower()
+    if trace_level_raw not in {"minimal", "standard", "verbose"}:
+        trace_level_raw = run_defaults.trace_level
+
     run_config = RunConfig(
         output_dir=_path_value(run_payload.get("output_dir"), run_defaults.output_dir),
         run_id=run_id,
         max_workers=int(run_payload.get("max_workers", run_defaults.max_workers)),
         task_timeout_seconds=int(run_payload.get("task_timeout_seconds", run_defaults.task_timeout_seconds)),
+        trace_level=trace_level_raw,
     )
     return AppConfig(dataset=dataset_config, agent=agent_config, run=run_config)

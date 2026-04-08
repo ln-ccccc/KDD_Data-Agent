@@ -1,3 +1,5 @@
+# schema for public task【静态结构】
+
 from __future__ import annotations
 
 from dataclasses import dataclass

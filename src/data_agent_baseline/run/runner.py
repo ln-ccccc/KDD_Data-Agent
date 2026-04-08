@@ -1,3 +1,7 @@
+# runner for data agent baseline
+"""
+定义数据代理基准线的运行器，包括任务运行、结果写入、失败处理等。
+"""
 from __future__ import annotations
 
 import csv
@@ -16,11 +20,15 @@ from data_agent_baseline.agents.react import ReActAgent, ReActAgentConfig
 from data_agent_baseline.agents.plan_execute import PlanAndExecuteAgent
 from data_agent_baseline.benchmark.dataset import DABenchPublicDataset
 from data_agent_baseline.config import AppConfig
+from data_agent_baseline.runtime.trace import write_json
 from data_agent_baseline.tools.registry import ToolRegistry, create_default_tool_registry
 
 
 @dataclass(frozen=True, slots=True)
 class TaskRunArtifacts:
+    """
+    记录任务运行后的工件，包括任务ID、输出目录、预测CSV路径、跟踪路径、是否成功、失败原因等。
+    """
     task_id: str
     task_output_dir: Path
     prediction_csv_path: Path | None
@@ -40,10 +48,16 @@ class TaskRunArtifacts:
 
 
 def create_run_id() -> str:
+    """
+    创建一个唯一的运行ID，格式为YYYYMMDDTHHMMSS。
+    """
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 def resolve_run_id(run_id: str | None = None) -> str:
+    """
+    解析运行ID，确保它是一个有效的目录名。
+    """
     if run_id is None:
         return create_run_id()
 
@@ -56,26 +70,41 @@ def resolve_run_id(run_id: str | None = None) -> str:
 
 
 def create_run_output_dir(output_root: Path, *, run_id: str | None = None) -> tuple[str, Path]:
+    """
+    创建运行输出目录，确保它不存在。
+    返回运行ID和运行输出目录路径。
+    """
+    if output_root.exists():
+        raise ValueError(f"output_root {output_root} must not exist.")
     effective_run_id = resolve_run_id(run_id)
     run_output_dir = output_root / effective_run_id
     run_output_dir.mkdir(parents=True, exist_ok=False)
     return effective_run_id, run_output_dir
 
 
-def build_model_adapter(config: AppConfig):
+def build_model_adapter(config: AppConfig) -> OpenAIModelAdapter:
+    """
+    创建OpenAI模型适配器，根据配置文件设置。
+    """
     return OpenAIModelAdapter(
         model=config.agent.model,
         api_base=config.agent.api_base,
         api_key=config.agent.api_key,
         temperature=config.agent.temperature,
+        seed=config.agent.seed,
+        retry=config.agent.retry,
     )
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    # Backward-compatible wrapper (older code paths may still call _write_json).
+    write_json(path, payload)
 
 
 def _write_csv(path: Path, columns: list[str], rows: list[list[Any]]) -> None:
+    """
+    写入CSV文件，确保目录存在。
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as handle:
         writer = csv.writer(handle)
@@ -85,6 +114,9 @@ def _write_csv(path: Path, columns: list[str], rows: list[list[Any]]) -> None:
 
 
 def _failure_run_result_payload(task_id: str, failure_reason: str) -> dict[str, Any]:
+    """
+    构建任务运行失败的JSON payload，包含任务ID、失败原因、是否成功等。
+    """
     return {
         "task_id": task_id,
         "answer": None,
@@ -101,6 +133,9 @@ def _run_single_task_core(
     model=None,
     tools: ToolRegistry | None = None,
 ) -> dict[str, Any]:
+    """
+    运行单个任务，返回任务结果。
+    """
     public_dataset = DABenchPublicDataset(config.dataset.root_path)
     task = public_dataset.get_task(task_id)
 
@@ -124,6 +159,9 @@ def _run_single_task_core(
 
 
 def _run_single_task_in_subprocess(task_id: str, config: AppConfig, queue: multiprocessing.Queue[Any]) -> None:
+    """
+    在子进程中运行运行单个任务，将结果通过队列返回。
+    """
     try:
         queue.put(
             {
@@ -141,6 +179,9 @@ def _run_single_task_in_subprocess(task_id: str, config: AppConfig, queue: multi
 
 
 def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[str, Any]:
+    """
+    运行单个任务，设置超时时间。
+    """
     public_dataset = DABenchPublicDataset(config.dataset.root_path)
     task = public_dataset.get_task(task_id)
     
@@ -191,6 +232,9 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
 
 
 def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str, Any]) -> TaskRunArtifacts:
+    """
+    写入任务运行输出，包括trace.json和prediction.csv。
+    """
     task_output_dir = run_output_dir / task_id
     task_output_dir.mkdir(parents=True, exist_ok=True)
     trace_path = task_output_dir / "trace.json"
@@ -224,6 +268,9 @@ def run_single_task(
     model=None,
     tools: ToolRegistry | None = None,
 ) -> TaskRunArtifacts:
+    """
+    运行单个任务，返回任务结果。
+    """
     started_at = perf_counter()
     if model is None and tools is None:
         run_result = _run_single_task_with_timeout(task_id=task_id, config=config)
@@ -241,6 +288,9 @@ def run_benchmark(
     limit: int | None = None,
     progress_callback: Callable[[TaskRunArtifacts], None] | None = None,
 ) -> tuple[Path, list[TaskRunArtifacts]]:
+    """
+    运行基准测试，返回任务结果。
+    """
     effective_run_id, run_output_dir = create_run_output_dir(config.run.output_dir, run_id=config.run.run_id)
 
     dataset = DABenchPublicDataset(config.dataset.root_path)

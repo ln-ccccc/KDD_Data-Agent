@@ -50,6 +50,10 @@
    uv run dabench run-benchmark --config configs/react_baseline.example.yaml
    ```
 
+## 开发说明
+
+- 仓库开发与工程化约束见 `CLAUDE.md`（适用于 Claude Code / 各类 coding agent）。
+
 ## 数据集
 
 公开 demo 数据集默认位于 `data/public/input/`。每个任务目录结构如下：
@@ -91,12 +95,17 @@ agent:
   max_steps: 16
   temperature: 0.0
   mode: hybrid  # react | hybrid
+  seed:
+  retry:
+    max_retries: 2
+    backoff_seconds: 0.8
 
 run:
   output_dir: artifacts/runs
   run_id:
   max_workers: 4
   task_timeout_seconds: 600
+  trace_level: standard  # minimal | standard | verbose
 ```
 
 配置字段说明：
@@ -110,10 +119,14 @@ run:
 | `agent.max_steps` | 单个任务允许的最大 ReAct 步数。 |
 | `agent.temperature` | 模型采样温度。 |
 | `agent.mode` | Agent 运行模式。`react` 为纯 ReAct；`hybrid` 为先规划后执行（Plan-and-Execute）再以 ReAct 推进。默认 `hybrid`。 |
+| `agent.seed` | 可选随机种子（保留字段；并非所有 OpenAI-compatible 网关都支持 seed）。 |
+| `agent.retry.max_retries` | 模型调用的重试次数（总请求次数 = 1 + max_retries）。 |
+| `agent.retry.backoff_seconds` | 重试基础退避秒数（指数退避）。 |
 | `run.output_dir` | 运行产物输出目录。 |
 | `run.run_id` | 可选，指定运行目录名。不传时默认使用 UTC 时间戳；必须是单个目录名，已存在会报错。 |
 | `run.max_workers` | `run-benchmark` 并行 worker 数。 |
 | `run.task_timeout_seconds` | 单个任务允许的最长墙钟时间。设为 `0` 或负数可关闭任务级超时。 |
+| `run.trace_level` | trace 输出等级：`minimal`（最小）、`standard`（默认，包含每步耗时等 meta）、`verbose`（预留给未来更详细调试信息）。 |
 
 ## Agent 模式
 
@@ -222,6 +235,8 @@ artifacts/runs/<run_id>/summary.json
 
 | 模块 | 责任 |
 | --- | --- |
+| `src/data_agent_baseline/core/` | 轻量公共类型与错误定义，方便工程化分层与复用 |
+| `src/data_agent_baseline/runtime/` | 运行时与 trace 辅助（稳定 JSON 写入、执行 meta） |
 | `src/data_agent_baseline/benchmark/dataset.py` | 公开数据集加载器 |
 | `src/data_agent_baseline/tools/filesystem.py` | `list_context`、`read_csv`、`read_json`、`read_doc` |
 | `src/data_agent_baseline/tools/python_exec.py` | `execute_python` |

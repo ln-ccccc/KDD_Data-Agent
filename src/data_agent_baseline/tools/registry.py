@@ -14,16 +14,16 @@ from data_agent_baseline.tools.filesystem import (
 from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
 
-EXECUTE_PYTHON_TIMEOUT_SECONDS = 30
+EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
 
-
+# Tool schema definition
 @dataclass(frozen=True, slots=True)
 class ToolSpec:
     name: str
     description: str
     input_schema: dict[str, Any]
 
-
+# Tool execution result definition（observation）
 @dataclass(frozen=True, slots=True)
 class ToolExecutionResult:
     ok: bool
@@ -31,27 +31,27 @@ class ToolExecutionResult:
     is_terminal: bool = False
     answer: AnswerTable | None = None
 
-
+# 作用是定义工具的执行函数，接收任务、输入和输出的类型。
 ToolHandler = Callable[[PublicTask, dict[str, Any]], ToolExecutionResult]
 
-
+# 文本工具：列出上下文目录树，用于获取任务上下文的目录结构
 def _list_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     max_depth = int(action_input.get("max_depth", 4))
     return ToolExecutionResult(ok=True, content=list_context_tree(task, max_depth=max_depth))
 
-
+# 文本工具：读取CSV文件预览，用于快速查看CSV文件的内容
 def _read_csv(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     path = str(action_input["path"])
     max_rows = int(action_input.get("max_rows", 20))
     return ToolExecutionResult(ok=True, content=read_csv_preview(task, path, max_rows=max_rows))
 
-
+# 文本工具：读取JSON文件预览，用于快速查看JSON文件的内容
 def _read_json(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     path = str(action_input["path"])
     max_chars = int(action_input.get("max_chars", 4000))
     return ToolExecutionResult(ok=True, content=read_json_preview(task, path, max_chars=max_chars))
 
-
+# 文本工具：读取DOCX文件预览，用于快速查看DOCX文件的内容
 def _read_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     path = str(action_input["path"])
     max_chars = int(action_input.get("max_chars", 4000))

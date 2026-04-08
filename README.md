@@ -50,6 +50,10 @@ English | [中文](README.zh.md)
    uv run dabench run-benchmark --config configs/react_baseline.example.yaml
    ```
 
+## Development Notes
+
+- See `CLAUDE.md` for repository development guidelines (useful for Claude Code / coding agents).
+
 ## Dataset
 
 The public demo dataset lives under `data/public/input/`. Each task directory follows this structure:
@@ -91,12 +95,17 @@ agent:
   max_steps: 16
   temperature: 0.0
   mode: hybrid  # react | hybrid
+  seed:
+  retry:
+    max_retries: 2
+    backoff_seconds: 0.8
 
 run:
   output_dir: artifacts/runs
   run_id:
   max_workers: 4
   task_timeout_seconds: 600
+  trace_level: standard  # minimal | standard | verbose
 ```
 
 Config fields:
@@ -110,10 +119,14 @@ Config fields:
 | `agent.max_steps` | Maximum ReAct steps per task. |
 | `agent.temperature` | Sampling temperature. |
 | `agent.mode` | Agent mode. `react` runs pure ReAct; `hybrid` first generates a high-level plan then executes via ReAct. Default: `hybrid`. |
+| `agent.seed` | Optional random seed (kept for future compatibility; not all gateways support seeded sampling). |
+| `agent.retry.max_retries` | Retries for transient model failures (total attempts = 1 + max_retries). |
+| `agent.retry.backoff_seconds` | Base backoff seconds for retries (exponential). |
 | `run.output_dir` | Output directory for run artifacts. |
 | `run.run_id` | Optional run directory name. Defaults to a UTC timestamp if omitted. Must be a single directory name; existing run directories are rejected. |
 | `run.max_workers` | Parallel worker count for `run-benchmark`. |
 | `run.task_timeout_seconds` | Maximum wall-clock time per task. Set to `0` or a negative value to disable the task-level timeout. |
+| `run.trace_level` | Trace verbosity. `minimal` keeps essentials, `standard` adds per-step meta, `verbose` is reserved for future debugging expansions. |
 
 ## Agent Modes
 
@@ -222,6 +235,8 @@ artifacts/runs/<run_id>/summary.json
 
 | Module | Responsibility |
 | --- | --- |
+| `src/data_agent_baseline/core/` | Lightweight shared types and errors for engineering-friendly modularization |
+| `src/data_agent_baseline/runtime/` | Trace and runtime helpers (stable JSON writer, execution metadata) |
 | `src/data_agent_baseline/benchmark/dataset.py` | Public dataset loader |
 | `src/data_agent_baseline/tools/filesystem.py` | `list_context`, `read_csv`, `read_json`, `read_doc` |
 | `src/data_agent_baseline/tools/python_exec.py` | `execute_python` |

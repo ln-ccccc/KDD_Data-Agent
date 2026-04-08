@@ -14,6 +14,9 @@ from data_agent_baseline.tools.registry import ToolRegistry
 
 
 def _strip_json_fence(raw_response: str) -> str:
+    """
+    从模型回复中移除 JSON 围栏，返回 JSON 内容。
+    """
     text = raw_response.strip()
     fence_match = re.search(r"```json\s*(.*?)\s*```", text, flags=re.IGNORECASE | re.DOTALL)
     if fence_match is not None:
@@ -25,6 +28,9 @@ def _strip_json_fence(raw_response: str) -> str:
 
 
 def _load_single_json_object(text: str) -> dict[str, object]:
+    """
+    从文本中加载单个 JSON 对象，返回 JSON 内容。
+    """
     payload, end = json.JSONDecoder().raw_decode(text)
     remainder = text[end:].strip()
     if remainder:
@@ -56,6 +62,9 @@ Do not include any text before or after the fenced JSON block.
 
 
 def _build_planner_messages(task: PublicTask, tools: ToolRegistry) -> list[ModelMessage]:
+    """
+    构建规划模块的输入消息。
+    """
     tool_desc = tools.describe_for_prompt()
     system = f"{PLANNER_SYSTEM_PROMPT}\n\nAvailable tools:\n{tool_desc}"
     user = f"Question: {task.question}\nReturn a plan now."
@@ -63,6 +72,9 @@ def _build_planner_messages(task: PublicTask, tools: ToolRegistry) -> list[Model
 
 
 def _parse_plan(raw_response: str) -> list[PlanStep]:
+    """
+    解析规划回复，返回计划步骤列表。
+    """
     text = _strip_json_fence(raw_response)
     obj = _load_single_json_object(text)
     plan = obj.get("plan")
@@ -86,6 +98,9 @@ def _parse_plan(raw_response: str) -> list[PlanStep]:
 
 
 def _render_plan_for_prompt(steps: list[PlanStep]) -> str:
+    """
+    渲染计划步骤列表，返回格式化后的文本。
+    """
     lines = []
     for i, step in enumerate(steps, start=1):
         if step.action and step.action_input is not None:
@@ -96,6 +111,9 @@ def _render_plan_for_prompt(steps: list[PlanStep]) -> str:
 
 
 class PlanAndExecuteAgent:
+    """
+    计划并执行代理，包含规划模块和执行模块。
+    """
     def __init__(
         self,
         *,
