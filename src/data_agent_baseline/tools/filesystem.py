@@ -92,3 +92,37 @@ def read_doc_preview(task: PublicTask, relative_path: str, *, max_chars: int = 4
         "preview": text[:max_chars],
         "truncated": len(text) > max_chars,
     }
+
+
+def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
+    """
+    Get the schema (columns and types) of a data file using DuckDB.
+    Supports CSV, JSON, Parquet, and Excel.
+    """
+    from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
+    
+    path = resolve_context_path(task, relative_path)
+    ext = path.suffix.lower()
+    
+    if ext in [".csv", ".parquet", ".json", ".xlsx", ".xls"]:
+        # Use DuckDB DESCRIBE to get a clean schema
+        sql = f"DESCRIBE SELECT * FROM '{relative_path}'"
+        res = execute_duckdb_sql(task.context_dir, sql)
+        if res.get("success"):
+            return {
+                "path": relative_path,
+                "schema": res.get("rows"),
+                "columns": res.get("columns"),
+                "note": "Schema obtained via DuckDB DESCRIBE."
+            }
+        else:
+            return {
+                "path": relative_path,
+                "error": res.get("error"),
+                "note": "Failed to get schema via DuckDB."
+            }
+    
+    return {
+        "path": relative_path,
+        "error": f"Unsupported file extension for schema extraction: {ext}",
+    }

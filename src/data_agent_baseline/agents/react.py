@@ -16,11 +16,9 @@ from data_agent_baseline.agents.runtime import AgentRunResult, AgentRuntimeState
 from data_agent_baseline.benchmark.schema import PublicTask
 from data_agent_baseline.tools.registry import ToolRegistry
 
-
 @dataclass(frozen=True, slots=True)
 class ReActAgentConfig:
     max_steps: int = 16
-
 
 def _strip_json_fence(raw_response: str) -> str:
     text = raw_response.strip()
@@ -34,7 +32,15 @@ def _strip_json_fence(raw_response: str) -> str:
 
 
 def _load_single_json_object(text: str) -> dict[str, object]:
-    payload, end = json.JSONDecoder().raw_decode(text)
+    try:
+        # Strict loading first
+        payload, end = json.JSONDecoder(strict=False).raw_decode(text)
+    except json.JSONDecodeError:
+        # If it fails, try to aggressively clean up control characters
+        # Common issue: models putting literal newlines inside JSON string values instead of \n
+        cleaned_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text)
+        payload, end = json.JSONDecoder(strict=False).raw_decode(cleaned_text)
+        
     remainder = text[end:].strip()
     if remainder:
         cleaned_remainder = re.sub(r"(?:\\[nrt])+", "", remainder).strip()
@@ -47,8 +53,13 @@ def _load_single_json_object(text: str) -> dict[str, object]:
 
 def parse_model_step(raw_response: str) -> ModelStep:
     normalized = _strip_json_fence(raw_response)
-    payload = _load_single_json_object(normalized)
-
+    
+    # Sometimes model might generate invalid JSON, wrap in try/except
+    try:
+        payload = _load_single_json_object(normalized)
+    except Exception as exc:
+        raise ValueError(f"Failed to parse model response as JSON: {exc}")
+    
     thought = payload.get("thought", "")
     action = payload.get("action")
     action_input = payload.get("action_input", {})
@@ -87,7 +98,22 @@ class ReActAgent:
             system_prompt=self.system_prompt,
         )
         messages = [ModelMessage(role="system", content=system_content)]
-        messages.append(ModelMessage(role="user", content=build_task_prompt(task)))
+        
+        # Initial user message with task and context overview
+        task_prompt = build_task_prompt(task)
+        
+        # Add context overview to the first prompt to prevent "blind querying"
+        try:
+            from data_agent_baseline.tools.filesystem import list_context_tree
+            context_tree = list_context_tree(task, max_depth=2)
+            files = [e["path"] for e in context_tree.get("entries", []) if e["kind"] == "file"]
+            if files:
+                task_prompt += f"\n\nAvailable files in context/:\n- " + "\n- ".join(files)
+        except Exception:
+            pass
+            
+        messages.append(ModelMessage(role="user", content=task_prompt))
+        
         for step in state.steps:
             messages.append(ModelMessage(role="assistant", content=step.raw_response))
             messages.append(

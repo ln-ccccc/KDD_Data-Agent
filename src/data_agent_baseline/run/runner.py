@@ -7,6 +7,7 @@ from __future__ import annotations
 import csv
 import json
 import multiprocessing
+import os
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -170,12 +171,7 @@ def _run_single_task_in_subprocess(task_id: str, config: AppConfig, queue: multi
             }
         )
     except BaseException as exc:  # noqa: BLE001
-        queue.put(
-            {
-                "ok": False,
-                "error": str(exc),
-            }
-        )
+        queue.put({"ok": False, "error": str(exc)})
 
 
 def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[str, Any]:
@@ -214,9 +210,21 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
         if process.is_alive():
             process.kill()
             process.join()
-        return _failure_run_result_payload(task_id, f"Task timed out after {timeout_seconds} seconds.")
+        # 将无结果但被杀死的任务，返回一个默认带 steps 的结构，这样 trace 至少不会是空
+        return {
+            "task_id": task_id,
+            "succeeded": False,
+            "failure_reason": f"Task timed out after {timeout_seconds} seconds. Process killed.",
+            "steps": [{"thought": f"Process stuck or timed out after {timeout_seconds}s.", "action": "timeout", "action_input": {}, "observation": {"ok": False, "content": "Killed by runner"}}],
+            "answer": None
+        }
 
-    if queue.empty():
+    # Collect the last actual message from the queue, which could be status or the final result
+    last_msg = None
+    while not queue.empty():
+        last_msg = queue.get()
+
+    if not last_msg:
         exit_code = process.exitcode
         if exit_code not in (None, 0):
             return _failure_run_result_payload(
@@ -225,10 +233,13 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
             )
         return _failure_run_result_payload(task_id, "Task exited without returning a result.")
 
-    result = queue.get()
-    if result.get("ok"):
-        return dict(result["run_result"])
-    return _failure_run_result_payload(task_id, f"Task failed with uncaught error: {result['error']}")
+    if last_msg.get("status") == "starting":
+        return _failure_run_result_payload(task_id, f"Task process started but died silently without result. Exit code: {process.exitcode}")
+
+    if last_msg.get("ok"):
+        return dict(last_msg["run_result"])
+        
+    return _failure_run_result_payload(task_id, f"Task failed with uncaught error: {last_msg.get('error', 'unknown')}")
 
 
 def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str, Any]) -> TaskRunArtifacts:
