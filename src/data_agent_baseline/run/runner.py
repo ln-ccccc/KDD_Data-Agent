@@ -17,11 +17,16 @@ from time import perf_counter
 from typing import Any
 
 from data_agent_baseline.agents.model import OpenAIModelAdapter
+from data_agent_baseline.orchestrators.langgraph.plan_execute_graph import (
+    LangGraphPlanAndExecuteAgent,
+    LangGraphPlanAndExecuteConfig,
+)
+from data_agent_baseline.orchestrators.langgraph.react_graph import LangGraphReActAgent, LangGraphReActAgentConfig
 from data_agent_baseline.agents.react import ReActAgent, ReActAgentConfig
 from data_agent_baseline.agents.plan_execute import PlanAndExecuteAgent
 from data_agent_baseline.benchmark.dataset import DABenchPublicDataset
 from data_agent_baseline.config import AppConfig
-from data_agent_baseline.runtime.trace import write_json
+from data_agent_baseline.runtime.trace import prune_trace_payload, write_json
 from data_agent_baseline.tools.registry import ToolRegistry, create_default_tool_registry
 
 
@@ -93,6 +98,8 @@ def build_model_adapter(config: AppConfig) -> OpenAIModelAdapter:
         api_key=config.agent.api_key,
         temperature=config.agent.temperature,
         seed=config.agent.seed,
+        seed_enabled=getattr(config.agent, "seed_enabled", False),
+        request_timeout_seconds=getattr(config.agent, "request_timeout_seconds", 60.0),
         retry=config.agent.retry,
     )
 
@@ -143,11 +150,23 @@ def _run_single_task_core(
     selected_model = model or build_model_adapter(config)
     selected_tools = tools or create_default_tool_registry()
     mode = (getattr(config.agent, "mode", "react") or "react").lower()
-    if mode == "hybrid":
+    if mode in {"hybrid", "plan_execute"}:
         agent = PlanAndExecuteAgent(
             model=selected_model,
             tools=selected_tools,
             config=ReActAgentConfig(max_steps=config.agent.max_steps),
+        )
+    elif mode in {"graph", "langgraph"}:
+        agent = LangGraphReActAgent(
+            model=selected_model,
+            tools=selected_tools,
+            config=LangGraphReActAgentConfig(max_steps=config.agent.max_steps),
+        )
+    elif mode in {"hybrid_graph", "graph_hybrid"}:
+        agent = LangGraphPlanAndExecuteAgent(
+            model=selected_model,
+            tools=selected_tools,
+            config=LangGraphPlanAndExecuteConfig(max_steps=config.agent.max_steps),
         )
     else:
         agent = ReActAgent(
@@ -249,7 +268,9 @@ def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str
     task_output_dir = run_output_dir / task_id
     task_output_dir.mkdir(parents=True, exist_ok=True)
     trace_path = task_output_dir / "trace.json"
-    _write_json(trace_path, run_result)
+    trace_level = str(run_result.get("trace_level", "standard") or "standard").strip().lower()
+    trace_payload = prune_trace_payload(dict(run_result), trace_level=trace_level)
+    _write_json(trace_path, trace_payload)
 
     prediction_csv_path: Path | None = None
     answer = run_result.get("answer")
@@ -288,6 +309,7 @@ def run_single_task(
     else:
         run_result = _run_single_task_core(task_id=task_id, config=config, model=model, tools=tools)
     run_result["e2e_elapsed_seconds"] = round(perf_counter() - started_at, 3)
+    run_result["trace_level"] = getattr(config.run, "trace_level", "standard")
     return _write_task_outputs(task_id, run_output_dir, run_result)
 
 

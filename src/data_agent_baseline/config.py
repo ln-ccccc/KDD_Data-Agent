@@ -30,8 +30,14 @@ class AgentConfig:
     api_key: str = ""
     max_steps: int = 16
     temperature: float = 0.0
+    # react: original hand-rolled ReAct loop
+    # hybrid: planner -> ReAct (hand-rolled)
+    # graph: LangGraph-based ReAct loop (same JSON action protocol)
+    # hybrid_graph: planner -> LangGraph ReAct
     mode: str = "hybrid"
     seed: int | None = None
+    seed_enabled: bool = False
+    request_timeout_seconds: float = 60.0
     retry: RetryPolicy = field(default_factory=RetryPolicy)
 
 
@@ -88,6 +94,10 @@ def load_app_config(config_path: Path) -> AppConfig:
         temperature=float(agent_payload.get("temperature", agent_defaults.temperature)),
         mode=str(agent_payload.get("mode", agent_defaults.mode)),
         seed=agent_payload.get("seed", agent_defaults.seed),
+        seed_enabled=bool(agent_payload.get("seed_enabled", agent_defaults.seed_enabled)),
+        request_timeout_seconds=float(
+            agent_payload.get("request_timeout_seconds", agent_defaults.request_timeout_seconds)
+        ),
         retry=retry_policy,
     )
     raw_run_id = run_payload.get("run_id")

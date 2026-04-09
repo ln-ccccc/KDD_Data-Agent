@@ -53,6 +53,7 @@ English | [中文](README.zh.md)
 ## Development Notes
 
 - See `CLAUDE.md` for repository development guidelines (useful for Claude Code / coding agents).
+- Minimal internal docs: `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`.
 
 ## Dataset
 
@@ -96,6 +97,8 @@ agent:
   temperature: 0.0
   mode: hybrid  # react | hybrid
   seed:
+  seed_enabled: false
+  request_timeout_seconds: 60
   retry:
     max_retries: 2
     backoff_seconds: 0.8
@@ -118,8 +121,10 @@ Config fields:
 | `agent.api_key` | API key, read directly from the config file. |
 | `agent.max_steps` | Maximum ReAct steps per task. |
 | `agent.temperature` | Sampling temperature. |
-| `agent.mode` | Agent mode. `react` runs pure ReAct; `hybrid` first generates a high-level plan then executes via ReAct. Default: `hybrid`. |
-| `agent.seed` | Optional random seed (kept for future compatibility; not all gateways support seeded sampling). |
+| `agent.mode` | Agent mode. `react`/`hybrid` are the original runtime; `graph`/`hybrid_graph` run the same logic on a LangGraph state machine (recommended for future DAG evolution). Default: `hybrid`. |
+| `agent.seed` | Optional random seed for reproducible sampling (only used when `agent.seed_enabled=true`). |
+| `agent.seed_enabled` | Enable passing `seed` to the model API. Keep `false` if your gateway rejects unknown parameters. |
+| `agent.request_timeout_seconds` | Per-request timeout (seconds) for model calls. |
 | `agent.retry.max_retries` | Retries for transient model failures (total attempts = 1 + max_retries). |
 | `agent.retry.backoff_seconds` | Base backoff seconds for retries (exponential). |
 | `run.output_dir` | Output directory for run artifacts. |
@@ -237,6 +242,7 @@ artifacts/runs/<run_id>/summary.json
 | --- | --- |
 | `src/data_agent_baseline/core/` | Lightweight shared types and errors for engineering-friendly modularization |
 | `src/data_agent_baseline/runtime/` | Trace and runtime helpers (stable JSON writer, execution metadata) |
+| `src/data_agent_baseline/orchestrators/` | Orchestration layer (LangGraph state machines for `graph` / `hybrid_graph`) |
 | `src/data_agent_baseline/benchmark/dataset.py` | Public dataset loader |
 | `src/data_agent_baseline/tools/filesystem.py` | `list_context`, `read_csv`, `read_json`, `read_doc` |
 | `src/data_agent_baseline/tools/python_exec.py` | `execute_python` |

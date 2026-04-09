@@ -40,3 +40,18 @@
 
 *   每次修改后需执行 `uv run python -m compileall src/data_agent_baseline` 保证语法无误。
 *   如有较大架构变动，优先更新本文档对齐上下文。
+
+## 5. 参考文档
+
+*   `docs/ARCHITECTURE.md`：最小架构说明（模块边界、数据流、trace 策略）
+*   `docs/ROADMAP.md`：迭代计划（强调避免过度工程）
+
+## 6. 已完成的关键改动记录（简版 Changelog）
+
+*   **Phase 1.5**：
+    *   trace 写盘前裁剪：新增 `run.trace_level`（minimal/standard/verbose）并默认截断超长字符串
+    *   可复现性开关：新增 `agent.seed_enabled` + `agent.request_timeout_seconds`
+    *   模型调用：复用 OpenAI client，支持 timeout；保留重试策略配置
+*   **Phase 2.0（进行中）**：
+    *   引入 LangGraph 作为编排层（保持 JSON action 协议不变）
+    *   目录分层：LangGraph wiring 迁移到 `src/data_agent_baseline/orchestrators/langgraph/`，避免与 `agents/` 混杂

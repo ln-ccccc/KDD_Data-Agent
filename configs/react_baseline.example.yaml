@@ -9,6 +9,8 @@ agent:
   temperature: 0.0
   mode: hybrid  # react | hybrid
   seed:
+  seed_enabled: false
+  request_timeout_seconds: 60
   retry:
     max_retries: 2
     backoff_seconds: 0.8

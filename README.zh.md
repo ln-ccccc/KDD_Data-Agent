@@ -53,6 +53,7 @@
 ## 开发说明
 
 - 仓库开发与工程化约束见 `CLAUDE.md`（适用于 Claude Code / 各类 coding agent）。
+- 最小内部文档：`docs/ARCHITECTURE.md`、`docs/ROADMAP.md`。
 
 ## 数据集
 
@@ -96,6 +97,8 @@ agent:
   temperature: 0.0
   mode: hybrid  # react | hybrid
   seed:
+  seed_enabled: false
+  request_timeout_seconds: 60
   retry:
     max_retries: 2
     backoff_seconds: 0.8
@@ -118,8 +121,10 @@ run:
 | `agent.api_key` | API key，直接从配置文件读取。 |
 | `agent.max_steps` | 单个任务允许的最大 ReAct 步数。 |
 | `agent.temperature` | 模型采样温度。 |
-| `agent.mode` | Agent 运行模式。`react` 为纯 ReAct；`hybrid` 为先规划后执行（Plan-and-Execute）再以 ReAct 推进。默认 `hybrid`。 |
-| `agent.seed` | 可选随机种子（保留字段；并非所有 OpenAI-compatible 网关都支持 seed）。 |
+| `agent.mode` | Agent 运行模式。`react`/`hybrid` 是原始执行器；`graph`/`hybrid_graph` 在 LangGraph 状态机上运行同样的 JSON action 协议（便于后续演进 DAG）。默认 `hybrid`。 |
+| `agent.seed` | 可选随机种子（仅在 `agent.seed_enabled=true` 时生效，用于提升可复现性）。 |
+| `agent.seed_enabled` | 是否把 seed 传给模型 API；如果你的网关不支持该参数请保持 `false`。 |
+| `agent.request_timeout_seconds` | 单次模型请求超时（秒）。 |
 | `agent.retry.max_retries` | 模型调用的重试次数（总请求次数 = 1 + max_retries）。 |
 | `agent.retry.backoff_seconds` | 重试基础退避秒数（指数退避）。 |
 | `run.output_dir` | 运行产物输出目录。 |
@@ -237,6 +242,7 @@ artifacts/runs/<run_id>/summary.json
 | --- | --- |
 | `src/data_agent_baseline/core/` | 轻量公共类型与错误定义，方便工程化分层与复用 |
 | `src/data_agent_baseline/runtime/` | 运行时与 trace 辅助（稳定 JSON 写入、执行 meta） |
+| `src/data_agent_baseline/orchestrators/` | 编排层（LangGraph 状态机，对应 `graph` / `hybrid_graph`） |
 | `src/data_agent_baseline/benchmark/dataset.py` | 公开数据集加载器 |
 | `src/data_agent_baseline/tools/filesystem.py` | `list_context`、`read_csv`、`read_json`、`read_doc` |
 | `src/data_agent_baseline/tools/python_exec.py` | `execute_python` |

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import logging
 from dataclasses import dataclass
 from time import sleep
 from typing import Any, Protocol
@@ -52,6 +50,8 @@ class OpenAIModelAdapter(ModelAdapter):
         api_key: str,
         temperature: float,
         seed: int | None = None,
+        seed_enabled: bool = False,
+        request_timeout_seconds: float = 60.0,
         retry: RetryPolicy | None = None,
     ) -> None:
         self.model = model
@@ -59,29 +59,33 @@ class OpenAIModelAdapter(ModelAdapter):
         self.api_key = api_key
         self.temperature = temperature
         self.seed = seed
+        self.seed_enabled = bool(seed_enabled)
+        self.request_timeout_seconds = float(request_timeout_seconds)
         self.retry = (retry or RetryPolicy()).normalized()
-    
-    # 调用 OpenAI 模型，返回模型回复。
-    def complete(self, messages: list[ModelMessage]) -> str:
         if not self.api_key:
             raise ModelError("Missing model API key in config.agent.api_key.")
 
-        client = OpenAI(
+        # Reuse client across calls to reduce overhead.
+        self._client = OpenAI(
             api_key=self.api_key,
             base_url=self.api_base,
+            timeout=self.request_timeout_seconds,
         )
-
-
+    
+    # 调用 OpenAI 模型，返回模型回复。
+    def complete(self, messages: list[ModelMessage]) -> str:
         last_error: BaseException | None = None
         for attempt in range(self.retry.max_retries + 1):
             try:
-                # NOTE: We intentionally do not pass non-standard parameters to maximize
-                # compatibility with OpenAI-compatible gateways.
-                response = client.chat.completions.create(
-                    model=self.model,
-                    messages=[{"role": message.role, "content": message.content} for message in messages],
-                    temperature=self.temperature,
-                )
+                request_kwargs: dict[str, Any] = {
+                    "model": self.model,
+                    "messages": [{"role": message.role, "content": message.content} for message in messages],
+                    "temperature": self.temperature,
+                }
+                if self.seed_enabled and self.seed is not None:
+                    request_kwargs["seed"] = int(self.seed)
+
+                response = self._client.chat.completions.create(**request_kwargs)
                 last_error = None
                 break
             except APIError as exc:
