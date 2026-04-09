@@ -127,6 +127,9 @@ run:
 | `agent.request_timeout_seconds` | 单次模型请求超时（秒）。 |
 | `agent.retry.max_retries` | 模型调用的重试次数（总请求次数 = 1 + max_retries）。 |
 | `agent.retry.backoff_seconds` | 重试基础退避秒数（指数退避）。 |
+| `agent.max_prompt_chars` | 上下文字符数阈值（估算），超过则触发压缩并缩小 prompt window。 |
+| `agent.compress_trigger_steps` | 保险触发：距离上次压缩的步数达到该值时强制触发一次压缩。 |
+| `agent.history_max_steps` | prompt 中最多保留最近多少步（其余信息通过 abstract/裁剪来承载）。 |
 | `run.output_dir` | 运行产物输出目录。 |
 | `run.run_id` | 可选，指定运行目录名。不传时默认使用 UTC 时间戳；必须是单个目录名，已存在会报错。 |
 | `run.max_workers` | `run-benchmark` 并行 worker 数。 |

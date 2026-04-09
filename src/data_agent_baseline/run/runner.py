@@ -105,6 +105,7 @@ def build_model_adapter(config: AppConfig) -> OpenAIModelAdapter:
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    
     # Backward-compatible wrapper (older code paths may still call _write_json).
     write_json(path, payload)
 
@@ -160,13 +161,23 @@ def _run_single_task_core(
         agent = LangGraphReActAgent(
             model=selected_model,
             tools=selected_tools,
-            config=LangGraphReActAgentConfig(max_steps=config.agent.max_steps),
+            config=LangGraphReActAgentConfig(
+                max_steps=config.agent.max_steps,
+                history_max_steps=getattr(config.agent, "history_max_steps", 8),
+                max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24_000),
+                compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
+            ),
         )
     elif mode in {"hybrid_graph", "graph_hybrid"}:
         agent = LangGraphPlanAndExecuteAgent(
             model=selected_model,
             tools=selected_tools,
-            config=LangGraphPlanAndExecuteConfig(max_steps=config.agent.max_steps),
+            config=LangGraphPlanAndExecuteConfig(
+                max_steps=config.agent.max_steps,
+                history_max_steps=getattr(config.agent, "history_max_steps", 8),
+                max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24_000),
+                compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
+            ),
         )
     else:
         agent = ReActAgent(

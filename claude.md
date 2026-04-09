@@ -45,6 +45,7 @@
 
 *   `docs/ARCHITECTURE.md`：最小架构说明（模块边界、数据流、trace 策略）
 *   `docs/ROADMAP.md`：迭代计划（强调避免过度工程）
+*   `docs/DESIGN_PITFALLS.md`：设计复盘（我们踩过的坑、思路如何调整）
 
 ## 6. 已完成的关键改动记录（简版 Changelog）
 

@@ -14,6 +14,9 @@ from data_agent_baseline.tools.registry import ToolRegistry
 @dataclass(frozen=True, slots=True)
 class LangGraphPlanAndExecuteConfig:
     max_steps: int = 16
+    history_max_steps: int = 8
+    max_prompt_chars: int = 24_000
+    compress_trigger_steps: int = 12
 
 
 class LangGraphPlanAndExecuteAgent:
@@ -43,8 +46,12 @@ class LangGraphPlanAndExecuteAgent:
         react = LangGraphReActAgent(
             model=self.model,
             tools=self.tools,
-            config=LangGraphReActAgentConfig(max_steps=self.config.max_steps),
+            config=LangGraphReActAgentConfig(
+                max_steps=self.config.max_steps,
+                history_max_steps=self.config.history_max_steps,
+                max_prompt_chars=self.config.max_prompt_chars,
+                compress_trigger_steps=self.config.compress_trigger_steps,
+            ),
             system_prompt=planned_system,
         )
         return react.run(task)
-

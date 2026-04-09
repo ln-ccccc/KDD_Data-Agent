@@ -127,6 +127,9 @@ Config fields:
 | `agent.request_timeout_seconds` | Per-request timeout (seconds) for model calls. |
 | `agent.retry.max_retries` | Retries for transient model failures (total attempts = 1 + max_retries). |
 | `agent.retry.backoff_seconds` | Base backoff seconds for retries (exponential). |
+| `agent.max_prompt_chars` | Prompt size threshold (character estimate). When exceeded, triggers compression and shrinks the prompt window. |
+| `agent.compress_trigger_steps` | Safety trigger: force a compression if this many steps have passed since last compress. |
+| `agent.history_max_steps` | Max recent steps to keep in the prompt window (older info is carried via abstract + pruning). |
 | `run.output_dir` | Output directory for run artifacts. |
 | `run.run_id` | Optional run directory name. Defaults to a UTC timestamp if omitted. Must be a single directory name; existing run directories are rejected. |
 | `run.max_workers` | Parallel worker count for `run-benchmark`. |

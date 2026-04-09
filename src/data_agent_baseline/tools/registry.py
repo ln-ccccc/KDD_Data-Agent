@@ -123,17 +123,54 @@ def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolE
 def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     columns = action_input.get("columns")
     rows = action_input.get("rows")
+    # Answer pre-check (do NOT raise): return a structured error so the agent can self-correct.
     if not isinstance(columns, list) or not columns or not all(isinstance(item, str) for item in columns):
-        raise ValueError("answer.columns must be a non-empty list of strings.")
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {
+                    "type": "InvalidAnswer",
+                    "message": "answer.columns must be a non-empty list of strings.",
+                },
+                "hint": "Example: {\"columns\": [\"col1\"], \"rows\": [[\"value1\"]]}",
+            },
+            is_terminal=False,
+        )
     if not isinstance(rows, list):
-        raise ValueError("answer.rows must be a list.")
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {"type": "InvalidAnswer", "message": "answer.rows must be a list."},
+                "hint": "rows must be a list of rows; each row must be a list with same length as columns.",
+            },
+            is_terminal=False,
+        )
 
     normalized_rows: list[list[Any]] = []
     for row in rows:
         if not isinstance(row, list):
-            raise ValueError("Each answer row must be a list.")
+            return ToolExecutionResult(
+                ok=False,
+                content={
+                    "error": {"type": "InvalidAnswer", "message": "Each answer row must be a list."},
+                    "hint": "rows should look like: [[val1, val2], [val1, val2]]",
+                },
+                is_terminal=False,
+            )
         if len(row) != len(columns):
-            raise ValueError("Each answer row must match the number of columns.")
+            return ToolExecutionResult(
+                ok=False,
+                content={
+                    "error": {
+                        "type": "InvalidAnswer",
+                        "message": "Each answer row must match the number of columns.",
+                        "expected_columns": len(columns),
+                        "got_columns": len(row),
+                    },
+                    "hint": "Ensure every row length equals len(columns).",
+                },
+                is_terminal=False,
+            )
         normalized_rows.append(list(row))
 
     answer = AnswerTable(columns=list(columns), rows=normalized_rows)
@@ -155,7 +192,9 @@ class ToolRegistry:
     handlers: dict[str, ToolHandler]
 
     def describe_for_prompt(self) -> str:
+        """描述所有工具"""
         lines = []
+        # 排序工具名称，确保一致的输出顺序
         for name in sorted(self.specs):
             spec = self.specs[name]
             lines.append(f"- {spec.name}: {spec.description}")
@@ -163,6 +202,8 @@ class ToolRegistry:
         return "\n".join(lines)
 
     def execute(self, task: PublicTask, action: str, action_input: dict[str, Any]) -> ToolExecutionResult:
+        """执行指定工具"""
+        # 验证工具是否存在
         if action not in self.handlers:
             raise KeyError(f"Unknown tool: {action}")
         _validate_tool_action_input(action, action_input)

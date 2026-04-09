@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, TypedDict
@@ -16,22 +17,36 @@ from data_agent_baseline.agents.prompt import (
 from data_agent_baseline.agents.react import parse_model_step
 from data_agent_baseline.agents.runtime import AgentRunResult, AgentRuntimeState, StepRecord
 from data_agent_baseline.benchmark.schema import PublicTask
+from data_agent_baseline.runtime.kernel.memory import AbstractUpdater, AbstractUpdateConfig, estimate_prompt_chars
+from data_agent_baseline.runtime.kernel.policy import ContextPolicy, PolicyConfig
+from data_agent_baseline.runtime.kernel.recall_provider import RecallProvider
+from data_agent_baseline.runtime.kernel.reducer import ReducerConfig, StateReducer
+from data_agent_baseline.runtime.kernel.renderer import ContextRenderer, RenderConfig
+from data_agent_baseline.runtime.kernel.state import AbstractMemory, RuntimeState, coerce_state
 from data_agent_baseline.tools.registry import ToolRegistry
 
 
 @dataclass(frozen=True, slots=True)
 class LangGraphReActAgentConfig:
     max_steps: int = 16
+    history_max_steps: int = 8  # default prompt window
+    observation_max_string_chars: int = 4000
+    observation_max_list_items: int = 50
+    parse_repair_max_retries: int = 1
+    # Context control (policy knobs)
+    max_prompt_chars: int = 24_000
+    compress_trigger_steps: int = 12
+    min_prompt_window_steps: int = 2
+    abstract_min_interval_steps: int = 6
+    abstract_failure_backoff_steps: int = 8
+    recall_cooldown_steps: int = 2
 
 
 class _GraphState(TypedDict, total=False):
     task: PublicTask
-    state: AgentRuntimeState
-    step_index: int
     system_prompt: str
     stop_reason: str
-    last_raw_response: str
-    last_llm_elapsed: float
+    rt: dict[str, Any]  # RuntimeState (SSOT) dumped as dict
 
 
 class LangGraphReActAgent:
@@ -49,53 +64,162 @@ class LangGraphReActAgent:
         self.tools = tools
         self.config = config or LangGraphReActAgentConfig()
         self.system_prompt = system_prompt or REACT_SYSTEM_PROMPT
+        # Kernel components (policy / rendering / reducers).
+        self._policy = ContextPolicy(
+            PolicyConfig(
+                max_prompt_chars=self.config.max_prompt_chars,
+                compress_trigger_steps=self.config.compress_trigger_steps,
+                default_window_steps=self.config.history_max_steps,
+                min_window_steps=self.config.min_prompt_window_steps,
+                abstract_min_interval_steps=self.config.abstract_min_interval_steps,
+                abstract_failure_backoff_steps=self.config.abstract_failure_backoff_steps,
+                recall_cooldown_steps=self.config.recall_cooldown_steps,
+            )
+        )
+        self._reducer = StateReducer(
+            ReducerConfig(
+                observation_max_string_chars=self.config.observation_max_string_chars,
+                observation_max_list_items=self.config.observation_max_list_items,
+                recall_cooldown_steps=self.config.recall_cooldown_steps,
+            )
+        )
+        self._abstract_updater = AbstractUpdater(
+            model=self.model,
+            config=AbstractUpdateConfig(
+                observation_max_string_chars=self.config.observation_max_string_chars,
+                observation_max_list_items=self.config.observation_max_list_items,
+            ),
+        )
+        self._recall_provider = RecallProvider()
+        self._renderer = ContextRenderer(
+            tools_description=self.tools.describe_for_prompt(),
+            config=RenderConfig(max_recall_snippets=3),
+        )
         self._app = self._build_graph()
 
-    def _build_messages(
-        self, task: PublicTask, runtime_state: AgentRuntimeState, system_prompt: str
-    ) -> list[ModelMessage]:
-        system_content = build_system_prompt(
-            self.tools.describe_for_prompt(),
-            system_prompt=system_prompt,
+    def _repair_action_json(self, *, raw_response: str, error: str) -> str:
+        """Ask the model to reformat its last output into valid action JSON."""
+        prompt = (
+            "Your previous response could not be parsed as the required JSON action object.\n"
+            f"Parse error: {error}\n\n"
+            "Return exactly ONE ```json fenced block containing ONE JSON object with keys:\n"
+            "- thought: string\n"
+            "- action: string\n"
+            "- action_input: object\n"
+            "No extra text before/after.\n\n"
+            "Previous response:\n"
+            f"{raw_response}\n"
         )
-        messages = [ModelMessage(role="system", content=system_content)]
-        messages.append(ModelMessage(role="user", content=build_task_prompt(task)))
-        for step in runtime_state.steps:
-            messages.append(ModelMessage(role="assistant", content=step.raw_response))
-            messages.append(ModelMessage(role="user", content=build_observation_prompt(step.observation)))
-        return messages
+        msgs = [ModelMessage(role="system", content=REACT_SYSTEM_PROMPT), ModelMessage(role="user", content=prompt)]
+        return self.model.complete(msgs)
 
     def _llm_step(self, gs: _GraphState) -> _GraphState:
         task = gs["task"]
-        runtime_state = gs["state"]
         system_prompt = gs.get("system_prompt") or self.system_prompt
+        rt = coerce_state(gs.get("rt") or {})
+
+        # Policy: estimate prompt size using current window.
+        window_n = max(int(rt.prompt_window_steps), 1)
+        step_dicts = [s.model_dump(mode="python") for s in rt.steps[-window_n:]]
+        prompt_chars = estimate_prompt_chars(
+            question=getattr(task, "question", ""),
+            abstract=rt.abstract.model_dump(mode="python"),
+            steps=step_dicts,
+        )
+        decision = self._policy.decide(prompt_chars_estimate=prompt_chars, state=rt)
+        rt.prompt_window_steps = decision.window_steps
+
+        # Mechanism: auto recall injection (internal memory read)
+        if decision.should_inject_auto_recall and decision.auto_recall_request is not None:
+            recall_payload = self._recall_provider.recall(state=rt, request=decision.auto_recall_request)
+            rt.recall_snippets.append(
+                {
+                    "why": "auto_recall_after_repeated_error",
+                    "request": decision.auto_recall_request,
+                    "content": recall_payload,
+                }
+            )
+            rt.pending_auto_recall = None
+            rt.recall_cooldown_steps = self.config.recall_cooldown_steps
+
+        # Mechanism: abstract update (sparse + soft-fail)
+        if decision.should_update_abstract:
+            older_steps = [s.model_dump(mode="python") for s in rt.steps[: -rt.prompt_window_steps]]
+            new_abs = self._abstract_updater.update(
+                question=getattr(task, "question", ""),
+                current=rt.abstract,
+                older_steps=older_steps,
+            )
+            if new_abs is not None:
+                rt.abstract = new_abs
+                rt.steps_since_compress = 0
+                # record last update step (stored as extra for policy)
+                rt.__dict__["abstract_last_update_step"] = len(rt.steps)  # pydantic extra
+            else:
+                # backoff on failure
+                rt.__dict__["abstract_backoff_until_step"] = len(rt.steps) + self.config.abstract_failure_backoff_steps
 
         llm_started_at = perf_counter()
-        raw_response = self.model.complete(self._build_messages(task, runtime_state, system_prompt))
+        raw_response = self.model.complete(
+            self._renderer.build_messages(task=task, state=rt, system_prompt=system_prompt)
+        )
         llm_elapsed = round(perf_counter() - llm_started_at, 6)
 
-        gs["last_raw_response"] = raw_response
-        gs["last_llm_elapsed"] = llm_elapsed
+        self._reducer.record_llm(rt, raw_response=raw_response, llm_elapsed=llm_elapsed)
+        gs["rt"] = rt.to_langgraph_dict()
         return gs
 
     def _tool_step(self, gs: _GraphState) -> _GraphState:
         task = gs["task"]
-        runtime_state = gs["state"]
-        step_index = int(gs.get("step_index", 0)) + 1
-        gs["step_index"] = step_index
-
-        raw_response = str(gs.get("last_raw_response", ""))
-        llm_elapsed = float(gs.get("last_llm_elapsed", 0.0))
+        rt = coerce_state(gs.get("rt") or {})
+        raw_response = str(rt.last_raw_response or "")
+        llm_elapsed = float(rt.last_llm_elapsed or 0.0)
 
         try:
-            model_step = parse_model_step(raw_response)
+            last_parse_error: str | None = None
+            model_step = None
+            current_raw = raw_response
+            for attempt in range(self.config.parse_repair_max_retries + 1):
+                try:
+                    model_step = parse_model_step(current_raw)
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    last_parse_error = str(exc)
+                    if attempt >= self.config.parse_repair_max_retries:
+                        raise
+                    current_raw = self._repair_action_json(raw_response=current_raw, error=last_parse_error)
+
+            assert model_step is not None  # for type-checkers
+
+            # Recall is an internal memory read, not a tool. If the model tries to call it,
+            # return a structured error and keep going.
+            if model_step.action == "recall":
+                observation = {
+                    "ok": False,
+                    "tool": "recall",
+                    "error": {
+                        "type": "RecallIsInternal",
+                        "message": "Recall is handled automatically by the runtime. Do NOT call recall as a tool. Continue with normal tools.",
+                    },
+                    "meta": {"llm_elapsed_seconds": llm_elapsed},
+                }
+                self._reducer.record_step(
+                    rt,
+                    thought=model_step.thought,
+                    action="recall",
+                    action_input=model_step.action_input,
+                    raw_response=current_raw,
+                    observation=observation,
+                    ok=False,
+                    llm_elapsed=llm_elapsed,
+                    tool_elapsed=None,
+                )
+                gs["rt"] = rt.to_langgraph_dict()
+                return gs
+
             tool_started_at = perf_counter()
             tool_result = self.tools.execute(task, model_step.action, model_step.action_input)
             tool_elapsed = round(perf_counter() - tool_started_at, 6)
-
-            truncated = False
-            if isinstance(tool_result.content, dict):
-                truncated = bool(tool_result.content.get("truncated", False))
 
             observation: dict[str, Any] = {
                 "ok": tool_result.ok,
@@ -104,65 +228,69 @@ class LangGraphReActAgent:
                 "meta": {
                     "llm_elapsed_seconds": llm_elapsed,
                     "tool_elapsed_seconds": tool_elapsed,
-                    "truncated": truncated,
                 },
             }
-
-            runtime_state.steps.append(
-                StepRecord(
-                    step_index=step_index,
-                    thought=model_step.thought,
-                    action=model_step.action,
-                    action_input=model_step.action_input,
-                    raw_response=raw_response,
-                    observation=observation,
-                    ok=tool_result.ok,
-                    llm_elapsed_seconds=llm_elapsed,
-                    tool_elapsed_seconds=tool_elapsed,
-                )
+            self._reducer.record_step(
+                rt,
+                thought=model_step.thought,
+                action=model_step.action,
+                action_input=model_step.action_input,
+                raw_response=current_raw,
+                observation=observation,
+                ok=tool_result.ok,
+                llm_elapsed=llm_elapsed,
+                tool_elapsed=tool_elapsed,
             )
+            gs["rt"] = rt.to_langgraph_dict()
 
             if tool_result.is_terminal:
-                runtime_state.answer = tool_result.answer
+                # Store answer as serializable dict.
+                answer = tool_result.answer.to_dict() if tool_result.answer is not None else None
+                rt.answer = answer
                 gs["stop_reason"] = "submitted_answer"
+                gs["rt"] = rt.to_langgraph_dict()
                 return gs
 
         except Exception as exc:  # noqa: BLE001
             error_msg = str(exc)
+            error_type = type(exc).__name__
             if "Invalid control character" in error_msg:
                 error_msg += " - DO NOT use literal newlines inside JSON strings. Use \\n instead."
 
             observation = {
                 "ok": False,
-                "error": error_msg,
+                "error": {
+                    "type": error_type,
+                    "message": error_msg,
+                },
                 "meta": {"llm_elapsed_seconds": llm_elapsed},
             }
-            runtime_state.steps.append(
-                StepRecord(
-                    step_index=step_index,
-                    thought="",
-                    action="__error__",
-                    action_input={},
-                    raw_response=raw_response,
-                    observation=observation,
-                    ok=False,
-                    llm_elapsed_seconds=llm_elapsed,
-                    tool_elapsed_seconds=None,
-                )
+            self._reducer.record_step(
+                rt,
+                thought="",
+                action="__error__",
+                action_input={},
+                raw_response=raw_response,
+                observation=observation,
+                ok=False,
+                llm_elapsed=llm_elapsed,
+                tool_elapsed=None,
             )
+            gs["rt"] = rt.to_langgraph_dict()
 
-        if step_index >= self.config.max_steps:
-            runtime_state.failure_reason = "Agent did not submit an answer within max_steps."
+        if len(rt.steps) >= self.config.max_steps:
+            rt.failure_reason = "Agent did not submit an answer within max_steps."
             gs["stop_reason"] = "max_steps"
+            gs["rt"] = rt.to_langgraph_dict()
         return gs
 
     def _should_continue(self, gs: _GraphState) -> str:
-        runtime_state = gs["state"]
-        if runtime_state.answer is not None:
+        rt = coerce_state(gs.get("rt") or {})
+        if rt.answer is not None:
             return "end"
-        if runtime_state.failure_reason is not None:
+        if rt.failure_reason is not None:
             return "end"
-        if int(gs.get("step_index", 0)) >= self.config.max_steps:
+        if len(rt.steps) >= self.config.max_steps:
             return "end"
         return "continue"
 
@@ -176,17 +304,40 @@ class LangGraphReActAgent:
         return g.compile()
 
     def run(self, task: PublicTask) -> AgentRunResult:
-        runtime_state = AgentRuntimeState()
-        _ = self._app.invoke(
-            {
-                "task": task,
-                "state": runtime_state,
-                "step_index": 0,
-                "system_prompt": self.system_prompt,
-            }
+        init_rt = RuntimeState(
+            abstract=AbstractMemory(),
+            prompt_window_steps=self.config.history_max_steps,
+            steps_since_compress=0,
         )
+        result = self._app.invoke({"task": task, "system_prompt": self.system_prompt, "rt": init_rt.to_langgraph_dict()})
 
-        if runtime_state.answer is None and runtime_state.failure_reason is None:
+        rt = coerce_state(result.get("rt") or {})
+        runtime_state = AgentRuntimeState()
+        for step in rt.steps:
+            runtime_state.steps.append(
+                StepRecord(
+                    step_index=step.step_index,
+                    thought=step.thought,
+                    action=step.action,
+                    action_input=dict(step.action_input or {}),
+                    raw_response=step.raw_response,
+                    observation=dict(step.observation or {}),
+                    ok=bool(step.ok),
+                    llm_elapsed_seconds=step.llm_elapsed_seconds,
+                    tool_elapsed_seconds=step.tool_elapsed_seconds,
+                )
+            )
+
+        answer_dict = rt.answer
+        if isinstance(answer_dict, dict) and answer_dict.get("columns") is not None:
+            from data_agent_baseline.benchmark.schema import AnswerTable  # local import
+
+            runtime_state.answer = AnswerTable(
+                columns=list(answer_dict.get("columns", [])),
+                rows=[list(row) for row in answer_dict.get("rows", [])],
+            )
+        runtime_state.failure_reason = rt.failure_reason
+        if runtime_state.answer is None and not runtime_state.failure_reason:
             runtime_state.failure_reason = "Agent stopped without an answer."
 
         return AgentRunResult(
@@ -195,4 +346,3 @@ class LangGraphReActAgent:
             steps=list(runtime_state.steps),
             failure_reason=runtime_state.failure_reason,
         )
-

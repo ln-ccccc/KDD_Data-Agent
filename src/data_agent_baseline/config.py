@@ -39,6 +39,10 @@ class AgentConfig:
     seed_enabled: bool = False
     request_timeout_seconds: float = 60.0
     retry: RetryPolicy = field(default_factory=RetryPolicy)
+    # Context / memory knobs (lightweight, for benchmark stability)
+    max_prompt_chars: int = 24_000
+    compress_trigger_steps: int = 12
+    history_max_steps: int = 8
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +103,11 @@ def load_app_config(config_path: Path) -> AppConfig:
             agent_payload.get("request_timeout_seconds", agent_defaults.request_timeout_seconds)
         ),
         retry=retry_policy,
+        max_prompt_chars=int(agent_payload.get("max_prompt_chars", agent_defaults.max_prompt_chars)),
+        compress_trigger_steps=int(
+            agent_payload.get("compress_trigger_steps", agent_defaults.compress_trigger_steps)
+        ),
+        history_max_steps=int(agent_payload.get("history_max_steps", agent_defaults.history_max_steps)),
     )
     raw_run_id = run_payload.get("run_id")
     run_id = run_defaults.run_id
