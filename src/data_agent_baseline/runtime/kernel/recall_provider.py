@@ -37,7 +37,7 @@ class RecallProvider:
         matches: list[dict[str, Any]] = []
 
         if kind == "sqlite_schema":
-            allowed_keys = {"path_contains"}
+            allowed_keys = {"path_contains", "keywords"}
             extra = set(query.keys()) - allowed_keys
             if extra:
                 return {
@@ -49,6 +49,13 @@ class RecallProvider:
                     },
                 }
             path_contains = str(query.get("path_contains", "") or "").strip()
+            keywords = query.get("keywords") or []
+            if not isinstance(keywords, list):
+                return {
+                    "ok": False,
+                    "error": {"type": "InvalidRecallQuery", "message": "query.keywords must be a list of strings"},
+                }
+            keywords = [str(x).lower() for x in keywords if str(x).strip()]
             for step in reversed(state.steps):
                 if step.action != "inspect_sqlite_schema":
                     continue
@@ -58,6 +65,16 @@ class RecallProvider:
                     continue
                 if path_contains and path_contains not in str(content.get("path", "")):
                     continue
+                if keywords and "tables" in content:
+                    filtered_tables = []
+                    for table in content.get("tables", []):
+                        if not isinstance(table, dict):
+                            continue
+                        table_name = str(table.get("name", "")).lower()
+                        create_sql = str(table.get("create_sql", "")).lower()
+                        if any(kw in table_name or kw in create_sql for kw in keywords):
+                            filtered_tables.append(table)
+                    content = {**content, "tables": filtered_tables}
                 snippet, truncated = prune_for_prompt(
                     content,
                     max_string_chars=self.config.max_string_chars,

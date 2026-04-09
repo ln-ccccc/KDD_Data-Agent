@@ -252,8 +252,10 @@ class LangGraphReActAgent:
                 return gs
 
         except Exception as exc:  # noqa: BLE001
+            import traceback
             error_msg = str(exc)
             error_type = type(exc).__name__
+            full_traceback = traceback.format_exc()
             if "Invalid control character" in error_msg:
                 error_msg += " - DO NOT use literal newlines inside JSON strings. Use \\n instead."
 
@@ -262,6 +264,7 @@ class LangGraphReActAgent:
                 "error": {
                     "type": error_type,
                     "message": error_msg,
+                    "traceback": full_traceback,
                 },
                 "meta": {"llm_elapsed_seconds": llm_elapsed},
             }
@@ -284,6 +287,36 @@ class LangGraphReActAgent:
             gs["rt"] = rt.to_langgraph_dict()
         return gs
 
+    def _reflection_step(self, gs: _GraphState) -> _GraphState:
+        rt = coerce_state(gs.get("rt") or {})
+        if not rt.steps:
+            return gs
+            
+        last_step = rt.steps[-1]
+        if not last_step.ok and isinstance(last_step.observation, dict):
+            # check for exception error or tool content error
+            error_info = last_step.observation.get("error")
+            content = last_step.observation.get("content", {})
+            if isinstance(content, dict) and not error_info:
+                if "error" in content:
+                    error_info = content.get("error")
+                    
+            if error_info:
+                error_type = error_info.get("type", "UnknownError") if isinstance(error_info, dict) else "Error"
+                error_msg = error_info.get("message", str(error_info)) if isinstance(error_info, dict) else str(error_info)
+                reflection_hint = (
+                    f"REFLECTION: The tool '{last_step.action}' failed with {error_type}. "
+                    f"Error details: {error_msg}. "
+                    "Analyze the error message and traceback to understand what went wrong. "
+                    "If it is a schema mismatch or syntax error, use inspection tools like `get_data_schema` "
+                    "or `inspect_sqlite_schema` to verify your assumptions before retrying. "
+                    "If you find a fix, remember to use `update_cheat_sheet`."
+                )
+                last_step.observation["reflection_hint"] = reflection_hint
+                
+        gs["rt"] = rt.to_langgraph_dict()
+        return gs
+
     def _should_continue(self, gs: _GraphState) -> str:
         rt = coerce_state(gs.get("rt") or {})
         if rt.answer is not None:
@@ -292,15 +325,19 @@ class LangGraphReActAgent:
             return "end"
         if len(rt.steps) >= self.config.max_steps:
             return "end"
+        if rt.steps and not rt.steps[-1].ok:
+            return "reflect"
         return "continue"
 
     def _build_graph(self):
         g = StateGraph(_GraphState)
         g.add_node("llm", self._llm_step)
         g.add_node("tool", self._tool_step)
+        g.add_node("reflection", self._reflection_step)
         g.set_entry_point("llm")
         g.add_edge("llm", "tool")
-        g.add_conditional_edges("tool", self._should_continue, {"continue": "llm", "end": END})
+        g.add_conditional_edges("tool", self._should_continue, {"continue": "llm", "reflect": "reflection", "end": END})
+        g.add_edge("reflection", "llm")
         return g.compile()
 
     def run(self, task: PublicTask) -> AgentRunResult:

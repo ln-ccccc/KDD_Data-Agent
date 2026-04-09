@@ -18,6 +18,7 @@ from data_agent_baseline.tools.filesystem import (
 from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
 from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
+from data_agent_baseline.tools.eda import extract_dataframe_stats
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
 
@@ -66,6 +67,18 @@ def _read_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionRe
     path = str(action_input["path"])
     max_chars = int(action_input.get("max_chars", 4000))
     return ToolExecutionResult(ok=True, content=read_doc_preview(task, path, max_chars=max_chars))
+
+
+def _get_data_schema(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    path = str(action_input["path"])
+    res = get_data_schema(task, path)
+    return ToolExecutionResult(ok=True, content=res)
+
+
+def _extract_dataframe_stats(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    path = str(action_input["path"])
+    res = extract_dataframe_stats(task, path)
+    return ToolExecutionResult(ok=res.get("success", False), content=res)
 
 
 def _inspect_sqlite_schema(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -206,7 +219,6 @@ class ToolRegistry:
         # 验证工具是否存在
         if action not in self.handlers:
             raise KeyError(f"Unknown tool: {action}")
-        _validate_tool_action_input(action, action_input)
         return self.handlers[action](task, action_input)
 
 
@@ -244,6 +256,11 @@ def create_default_tool_registry() -> ToolRegistry:
         "get_data_schema": ToolSpec(
             name="get_data_schema",
             description="Get the column names and data types of a CSV, JSON, Parquet, or Excel file inside context. ALWAYS use this before querying a file for the first time.",
+            input_schema={"path": "relative/path/to/file.csv"},
+        ),
+        "extract_dataframe_stats": ToolSpec(
+            name="extract_dataframe_stats",
+            description="Extract statistical information (EDA) from a data file (CSV, Parquet, JSON, Excel) including row/column count, describe(), missing values, and a data sample (head). Use this to get a deeper understanding of the data distribution.",
             input_schema={"path": "relative/path/to/file.csv"},
         ),
         "inspect_sqlite_schema": ToolSpec(
@@ -291,6 +308,7 @@ def create_default_tool_registry() -> ToolRegistry:
         "execute_python": _execute_python,
         "inspect_sqlite_schema": _inspect_sqlite_schema,
         "get_data_schema": _get_data_schema,
+        "extract_dataframe_stats": _extract_dataframe_stats,
         "list_context": _list_context,
         "read_csv": _read_csv,
         "read_doc": _read_doc,

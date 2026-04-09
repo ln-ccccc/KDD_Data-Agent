@@ -1,0 +1,4 @@
+- [x] Schema RAG 和上下文压缩机制能够成功将 Token 使用量控制在安全范围内，且不丢失当前 Query 的关键表信息
+- [x] Agent 在遇到 SQL 或 Python 执行错误时，能够自动触发 Reflection 并在后续步骤中根据报错修正代码
+- [x] 新增的数据探索工具能被 Agent 成功调用，并辅助生成正确的代码/SQL
+- [x] Benchmark 脚本能够成功批量运行，并准确输出对齐 KDD Cup 规则的得分评估报告

@@ -257,5 +257,24 @@ def run_benchmark_command(
     console.print(f"Succeeded tasks: {sum(1 for item in artifacts if item.succeeded)}")
 
 
+@app.command("eval-run")
+def eval_run_command(
+    run_dir: Path = typer.Option(..., exists=True, file_okay=False, help="Path to the run directory (e.g. artifacts/runs/run_xxx)."),
+    gold_dir: Path = typer.Option(
+        Path("data/public/output"), exists=True, file_okay=False, help="Path to the gold output directory."
+    ),
+    output_report: Path | None = typer.Option(None, help="Path to save the evaluation JSON report."),
+) -> None:
+    """Evaluate a completed run against the gold dataset."""
+    from data_agent_baseline.benchmark.kdd_eval import evaluate_run, print_visual_report
+
+    try:
+        report = evaluate_run(run_dir, gold_dir, output_report)
+        print_visual_report(report, console)
+    except Exception as e:
+        console.print(f"[red]Evaluation failed: {e}[/red]")
+        raise typer.Exit(1)
+
+
 def main() -> None:
     app()

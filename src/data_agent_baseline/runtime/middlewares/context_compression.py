@@ -125,6 +125,25 @@ class ContextCompressionMiddleware:
         if not isinstance(steps, list) or not steps:
             return state
 
+        # Smart truncation for excessively long SQL or Python execution results
+        new_steps = []
+        for step in steps:
+            if not isinstance(step, dict):
+                new_steps.append(step)
+                continue
+            action = step.get("action")
+            if action in ("execute_python", "execute_context_sql", "execute_duckdb_sql"):
+                obs = step.get("observation")
+                if isinstance(obs, dict):
+                    new_step = dict(step)
+                    new_step["observation"] = self._smart_truncate_observation(obs, action)
+                    new_steps.append(new_step)
+                else:
+                    new_steps.append(step)
+            else:
+                new_steps.append(step)
+        state["steps"] = new_steps
+
         # Step-based trigger
         state["steps_since_compress"] = int(state.get("steps_since_compress", 0))
         trigger_by_steps = state["steps_since_compress"] >= self.config.max_steps_since_compress
@@ -228,3 +247,48 @@ class ContextCompressionMiddleware:
                 }
         except Exception:  # noqa: BLE001
             return
+
+    def _smart_truncate_observation(self, obs: dict[str, Any], action: str, max_chars: int = 4000) -> dict[str, Any]:
+        """Smart truncation for excessively long SQL or Python execution results."""
+        new_obs = dict(obs)
+        if action == "execute_python":
+            for key in ("output", "stderr"):
+                val = new_obs.get(key)
+                if isinstance(val, str) and len(val) > max_chars:
+                    half = max_chars // 2
+                    truncated_msg = f"\n\n... [Truncated {len(val) - max_chars} chars] ...\n\n"
+                    new_obs[key] = val[:half] + truncated_msg + val[-half:]
+                    new_obs["truncated_by_compression"] = True
+        elif action in ("execute_context_sql", "execute_duckdb_sql"):
+            rows = new_obs.get("rows")
+            if isinstance(rows, list) and len(str(rows)) > max_chars:
+                cols = new_obs.get("columns", [])
+                dummy_row = ["..."] * len(cols) if cols else ["..."]
+                
+                # Truncate rows
+                if len(rows) > 20:
+                    head = rows[:10]
+                    tail = rows[-10:]
+                    rows = head + [dummy_row] + tail
+                    new_obs["truncated_by_compression"] = True
+
+                # If still too long, truncate string cells
+                if len(str(rows)) > max_chars:
+                    cell_max = max(10, max_chars // 100)
+                    truncated_rows = []
+                    for row in rows:
+                        if isinstance(row, list):
+                            new_row = []
+                            for cell in row:
+                                if isinstance(cell, str) and len(cell) > cell_max:
+                                    new_row.append(cell[:cell_max] + "...")
+                                else:
+                                    new_row.append(cell)
+                            truncated_rows.append(new_row)
+                        else:
+                            truncated_rows.append(row)
+                    rows = truncated_rows
+                    new_obs["truncated_by_compression"] = True
+
+                new_obs["rows"] = rows
+        return new_obs
