@@ -5,9 +5,7 @@
 from __future__ import annotations
 
 import csv
-import json
 import multiprocessing
-import os
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -193,14 +191,13 @@ def _run_single_task_in_subprocess(task_id: str, config: AppConfig, queue: multi
     """
     在子进程中运行运行单个任务，将结果通过队列返回。
     """
+    import sys
     try:
-        queue.put(
-            {
-                "ok": True,
-                "run_result": _run_single_task_core(task_id=task_id, config=config),
-            }
-        )
+        res = _run_single_task_core(task_id=task_id, config=config)
+        queue.put({"ok": True, "run_result": res})
     except BaseException as exc:  # noqa: BLE001
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         queue.put({"ok": False, "error": str(exc)})
 
 
@@ -226,13 +223,19 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
     if timeout_seconds <= 0:
         return _run_single_task_core(task_id=task_id, config=config)
 
-    queue: multiprocessing.Queue[Any] = multiprocessing.Queue()
+    import queue as q
+    queue_obj: multiprocessing.Queue[Any] = multiprocessing.Queue()
     process = multiprocessing.Process(
         target=_run_single_task_in_subprocess,
-        args=(task_id, config, queue),
+        args=(task_id, config, queue_obj),
     )
     process.start()
-    process.join(timeout_seconds)
+
+    try:
+        # get blocks until an item is available or timeout expires
+        result = queue_obj.get(timeout=timeout_seconds)
+    except q.Empty:
+        result = None
 
     if process.is_alive():
         process.terminate()
@@ -240,36 +243,36 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
         if process.is_alive():
             process.kill()
             process.join()
-        # 将无结果但被杀死的任务，返回一个默认带 steps 的结构，这样 trace 至少不会是空
-        return {
-            "task_id": task_id,
-            "succeeded": False,
-            "failure_reason": f"Task timed out after {timeout_seconds} seconds. Process killed.",
-            "steps": [{"thought": f"Process stuck or timed out after {timeout_seconds}s.", "action": "timeout", "action_input": {}, "observation": {"ok": False, "content": "Killed by runner"}}],
-            "answer": None
-        }
-
-    # Collect the last actual message from the queue, which could be status or the final result
-    last_msg = None
-    while not queue.empty():
-        last_msg = queue.get()
-
-    if not last_msg:
-        exit_code = process.exitcode
-        if exit_code not in (None, 0):
-            return _failure_run_result_payload(
-                task_id,
-                f"Task exited unexpectedly with exit code {exit_code}.",
-            )
-        return _failure_run_result_payload(task_id, "Task exited without returning a result.")
-
-    if last_msg.get("status") == "starting":
-        return _failure_run_result_payload(task_id, f"Task process started but died silently without result. Exit code: {process.exitcode}")
-
-    if last_msg.get("ok"):
-        return dict(last_msg["run_result"])
         
-    return _failure_run_result_payload(task_id, f"Task failed with uncaught error: {last_msg.get('error', 'unknown')}")
+        if result is None:
+            return {
+                "task_id": task_id,
+                "succeeded": False,
+                "failure_reason": f"Task timed out after {timeout_seconds} seconds. Process killed.",
+                "steps": [{"thought": f"Process stuck or timed out after {timeout_seconds}s.", "action": "timeout", "action_input": {}, "observation": {"ok": False, "content": "Killed by runner"}}],
+                "answer": None
+            }
+
+    if result is not None:
+        if result["ok"]:
+            return result["run_result"]
+        else:
+            return {
+                "task_id": task_id,
+                "succeeded": False,
+                "failure_reason": f"Task failed with error: {result['error']}",
+                "steps": [{"thought": f"Task failed with error: {result['error']}", "action": "error", "action_input": {}, "observation": {"ok": False, "content": "Error"}}],
+                "answer": None
+            }
+
+    exit_code = process.exitcode
+    if exit_code not in (None, 0):
+        return _failure_run_result_payload(
+            task_id,
+            f"Task exited unexpectedly with exit code {exit_code}.",
+        )
+    
+    return _failure_run_result_payload(task_id, "Task exited without returning a result.")
 
 
 def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str, Any]) -> TaskRunArtifacts:
