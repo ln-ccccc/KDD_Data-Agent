@@ -36,6 +36,7 @@ class RuntimeState(BaseModel):
 
     # Execution
     steps: list[RuntimeStep] = Field(default_factory=list)
+    pending_answer: dict[str, Any] | None = None
     answer: dict[str, Any] | None = None
     failure_reason: str | None = None
 

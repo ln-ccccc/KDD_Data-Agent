@@ -380,4 +380,10 @@ def create_default_tool_registry(
         )
         handlers["delegate_to_data_analyst"] = build_subagent_tool(_create_subagent)
 
-    return ToolRegistry(specs=specs, handlers=handlers)
+    registry = ToolRegistry(specs=specs, handlers=handlers)
+    
+    # Load dynamic skills
+    from data_agent_baseline.tools.skills import load_skills
+    load_skills(registry)
+    
+    return registry

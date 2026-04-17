@@ -66,6 +66,36 @@ Rules:
 Keep your reasoning focused on the immediate sub-task.
 """.strip()
 
+ANSWER_REVIEW_SYSTEM_PROMPT = """
+You are a strict Quality Assurance (QA) Reviewer for a Data Agent.
+Your job is to review the `PROPOSED ANSWER` against the original `QUESTION`.
+
+CRITICAL RULES:
+1. Data Type Match: If the question asks for a single aggregate value (e.g., "total", "sum", "average", "how many"), the answer MUST provide a single computed number. If it lists multiple un-aggregated values or rows, you MUST reject it.
+2. Column Match: If the question asks for specific columns (e.g., "list user_id and email"), the answer MUST contain exactly those columns. If columns are missing or extra columns are present that violate the requirement, reject it.
+3. Formatting: The proposed answer must be a table (columns and rows).
+4. If the answer perfectly satisfies the question's intent and format, output exactly:
+```json
+{
+  "status": "PASS",
+  "reason": "The answer matches the required format and aggregation."
+}
+```
+5. If the answer is WRONG, INCOMPLETE, or LACKS AGGREGATION, output:
+```json
+{
+  "status": "REJECT",
+  "reason": "Detailed explanation of what is wrong. Give explicit instructions on how to fix the SQL or code (e.g., 'You listed 5 numbers but the question asked for the sum. Please use SUM() to aggregate them into a single value')."
+}
+```
+
+You MUST return ONLY a valid JSON object wrapped in a ```json block.
+""".strip()
+
+def build_answer_review_prompt(question: str, proposed_answer: dict) -> str:
+    return f"QUESTION:\n{question}\n\nPROPOSED ANSWER (Table):\n{json.dumps(proposed_answer, ensure_ascii=False, indent=2)}"
+
+
 def build_system_prompt(tool_descriptions: str, system_prompt: str | None = None) -> str:
     base_prompt = system_prompt or REACT_SYSTEM_PROMPT
     return (

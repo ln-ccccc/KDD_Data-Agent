@@ -248,10 +248,10 @@ class LangGraphReActAgent:
             gs["rt"] = rt.to_langgraph_dict()
 
             if tool_result.is_terminal:
-                # Store answer as serializable dict.
+                # Store answer as serializable dict to pending_answer for review
                 answer = tool_result.answer.to_dict() if tool_result.answer is not None else None
-                rt.answer = answer
-                gs["stop_reason"] = "submitted_answer"
+                rt.pending_answer = answer
+                gs["stop_reason"] = "reviewing_answer"
                 gs["rt"] = rt.to_langgraph_dict()
                 return gs
 
@@ -321,10 +321,57 @@ class LangGraphReActAgent:
         gs["rt"] = rt.to_langgraph_dict()
         return gs
 
+    def _answer_review_step(self, gs: _GraphState) -> _GraphState:
+        rt = coerce_state(gs.get("rt") or {})
+        pending_answer = getattr(rt, "pending_answer", None)
+        if not pending_answer:
+            return gs
+            
+        task = gs["task"]
+        from data_agent_baseline.agents.prompt import ANSWER_REVIEW_SYSTEM_PROMPT, build_answer_review_prompt
+        
+        msgs = [
+            ModelMessage(role="system", content=ANSWER_REVIEW_SYSTEM_PROMPT),
+            ModelMessage(role="user", content=build_answer_review_prompt(task.question, pending_answer))
+        ]
+        
+        try:
+            review_response = self.model.complete(msgs)
+            import re
+            match = re.search(r'```json\s*(.*?)\s*```', review_response, re.DOTALL)
+            if match:
+                review_response = match.group(1)
+            review_data = json.loads(review_response)
+            status = review_data.get("status", "REJECT")
+            reason = review_data.get("reason", "Failed to parse review reason.")
+        except Exception as e:
+            # Fallback to PASS if reviewer logic crashes to avoid infinite loop
+            status = "PASS"
+            reason = str(e)
+            
+        if status == "PASS":
+            rt.answer = pending_answer
+            gs["stop_reason"] = "submitted_answer"
+        else:
+            # Reject: Mark the last step as failed and provide feedback
+            if rt.steps:
+                last_step = rt.steps[-1]
+                last_step.ok = False
+                last_step.observation = {
+                    "ok": False,
+                    "error": f"QA REVIEW REJECTED YOUR ANSWER: {reason}. Please continue reasoning, fix the issue, and submit a new answer."
+                }
+                
+        rt.pending_answer = None
+        gs["rt"] = rt.to_langgraph_dict()
+        return gs
+
     def _should_continue(self, gs: _GraphState) -> str:
         rt = coerce_state(gs.get("rt") or {})
         if rt.answer is not None:
             return "end"
+        if getattr(rt, "pending_answer", None) is not None:
+            return "review"
         if rt.failure_reason is not None:
             return "end"
         if len(rt.steps) >= self.config.max_steps:
@@ -333,14 +380,22 @@ class LangGraphReActAgent:
             return "reflect"
         return "continue"
 
+    def _review_should_continue(self, gs: _GraphState) -> str:
+        rt = coerce_state(gs.get("rt") or {})
+        if rt.answer is not None:
+            return "end"
+        return "reflect"  # Route rejected answer to reflection for further hints
+
     def _build_graph(self):
         g = StateGraph(_GraphState)
         g.add_node("llm", self._llm_step)
         g.add_node("tool", self._tool_step)
         g.add_node("reflection", self._reflection_step)
+        g.add_node("answer_review", self._answer_review_step)
         g.set_entry_point("llm")
         g.add_edge("llm", "tool")
-        g.add_conditional_edges("tool", self._should_continue, {"continue": "llm", "reflect": "reflection", "end": END})
+        g.add_conditional_edges("tool", self._should_continue, {"continue": "llm", "reflect": "reflection", "review": "answer_review", "end": END})
+        g.add_conditional_edges("answer_review", self._review_should_continue, {"end": END, "reflect": "reflection"})
         g.add_edge("reflection", "llm")
         return g.compile()
 
