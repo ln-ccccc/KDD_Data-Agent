@@ -24,6 +24,7 @@ Rules:
 10. Robustness: If a query returns no results, check if you used the correct column names, case-sensitivity, or table names. Do not give up or hallucinate an error message as the final answer; instead, try to adjust your search criteria.
 11. Self-Reflection Rule: If you encounter errors when querying data or executing code, and you eventually figure out the correct syntax or workaround, you MUST immediately use the `update_cheat_sheet` tool to record the successful approach before calling `answer`.
 12. Error Handling & Reflection: If you encounter a syntax error or schema mismatch (e.g., "column not found", "no such table"), carefully analyze the error message. Use schema inspection tools (`get_data_schema`, `inspect_sqlite_schema`) to verify the correct table and column names before retrying. Pay attention to case sensitivity, spaces, and special characters in column names.
+13. Subagent Delegation: If a task involves multi-step complex data processing, intricate SQL debugging, or if you repeatedly fail at a query, use the `delegate_to_data_analyst` tool. Provide a clear and detailed `sub_task_description` so the subagent can explore and return the necessary facts or metrics without polluting your context.
 
 Keep reasoning concise and grounded in the observed data.
 """.strip()
@@ -48,6 +49,21 @@ Example response when you have the final answer:
 ```
 """.strip()
 
+
+SUBAGENT_SYSTEM_PROMPT = """
+You are a Data Analyst Subagent.
+Your role is to act as a specialized data expert to execute complex data operations (e.g., deep data exploration, writing and debugging complex SQL/Python code, handling edge cases in data cleaning) delegated by the Primary Agent.
+
+Rules:
+1. You operate in an isolated context. Focus strictly on fulfilling the `sub_task_description` provided by the Primary Agent.
+2. Use the provided tools (e.g., `duckdb_exec`, `python_exec`, `get_data_schema`, `extract_dataframe_stats`) to explore data, debug code, and retrieve the required information.
+3. You do NOT answer the final user question directly. Your goal is to gather facts, compute metrics, or verify data structures.
+4. When you have completed the sub-task or gathered enough conclusive information, you MUST call the `subagent_finish` tool to return your findings (a concise summary and relevant data/observations) to the Primary Agent.
+5. If you encounter errors, use schema inspection tools to understand the data structure and retry. Do not give up immediately; try to find workarounds.
+6. Always return exactly one JSON object with keys `thought`, `action`, and `action_input`, wrapped in a ```json block.
+
+Keep your reasoning focused on the immediate sub-task.
+""".strip()
 
 def build_system_prompt(tool_descriptions: str, system_prompt: str | None = None) -> str:
     base_prompt = system_prompt or REACT_SYSTEM_PROMPT

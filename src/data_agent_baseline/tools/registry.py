@@ -19,6 +19,7 @@ from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
 from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
 from data_agent_baseline.tools.eda import extract_dataframe_stats
+from data_agent_baseline.tools.subagent import build_subagent_tool, subagent_finish
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
 
@@ -222,7 +223,16 @@ class ToolRegistry:
         return self.handlers[action](task, action_input)
 
 
-def create_default_tool_registry() -> ToolRegistry:
+def create_default_tool_registry(
+    *, 
+    allow_python: bool = True, 
+    model: Any | None = None,
+    config: Any | None = None,
+) -> ToolRegistry:
+    """
+    Creates a ToolRegistry with the standard suite of tools for the primary agent.
+    If `model` and `config` are provided, it will also register the subagent tool.
+    """
     specs = {
         "answer": ToolSpec(
             name="answer",
@@ -314,4 +324,46 @@ def create_default_tool_registry() -> ToolRegistry:
         "read_doc": _read_doc,
         "read_json": _read_json,
     }
+
+    if model and config:
+        from data_agent_baseline.orchestrators.langgraph.react_graph import LangGraphReActAgent, LangGraphReActAgentConfig
+        from data_agent_baseline.agents.prompt import SUBAGENT_SYSTEM_PROMPT
+
+        def _create_subagent():
+            sub_tools = create_default_tool_registry(allow_python=allow_python)
+            
+            # The subagent needs the `subagent_finish` tool to report back
+            sub_tools.specs["subagent_finish"] = ToolSpec(
+                name="subagent_finish",
+                description="Use this tool when you have completed your data exploration or debugging. Summarize your findings to return them to the Primary Agent.",
+                input_schema={
+                    "summary": "Detailed summary of your findings or results.",
+                    "data_references": ["List of any newly generated files or views.", "Can be empty."],
+                    "raw_findings": {"type": "object", "description": "Any structured JSON data to return."}
+                }
+            )
+            sub_tools.handlers["subagent_finish"] = subagent_finish
+
+            return LangGraphReActAgent(
+                model=model,
+                tools=sub_tools,
+                config=LangGraphReActAgentConfig(
+                    max_steps=getattr(config.agent, "max_steps", 16) // 2, # Give subagent less steps
+                    history_max_steps=getattr(config.agent, "history_max_steps", 8),
+                    max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24000),
+                    compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
+                ),
+                system_prompt=SUBAGENT_SYSTEM_PROMPT,
+            )
+
+        specs["delegate_to_data_analyst"] = ToolSpec(
+            name="delegate_to_data_analyst",
+            description="Delegate complex data exploration, SQL debugging, or deep analysis to a specialized Subagent. Use this when you are stuck or need to perform a multi-step data task.",
+            input_schema={
+                "sub_task_description": "Detailed instructions of what the subagent needs to find or compute.",
+                "focus_files": ["file1.csv", "file2.json"]
+            },
+        )
+        handlers["delegate_to_data_analyst"] = build_subagent_tool(_create_subagent)
+
     return ToolRegistry(specs=specs, handlers=handlers)

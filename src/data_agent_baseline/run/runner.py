@@ -147,7 +147,11 @@ def _run_single_task_core(
     task = public_dataset.get_task(task_id)
 
     selected_model = model or build_model_adapter(config)
-    selected_tools = tools or create_default_tool_registry()
+    selected_tools = tools or create_default_tool_registry(
+        allow_python=getattr(config.agent, "allow_python_exec", True),
+        model=selected_model,
+        config=config,
+    )
     mode = (getattr(config.agent, "mode", "react") or "react").lower()
     if mode in {"hybrid", "plan_execute"}:
         agent = PlanAndExecuteAgent(
@@ -356,7 +360,11 @@ def run_benchmark(
     task_artifacts: list[TaskRunArtifacts]
     if effective_workers == 1:
         shared_model = model or build_model_adapter(config)
-        shared_tools = tools or create_default_tool_registry()
+        shared_tools = tools or create_default_tool_registry(
+            allow_python=getattr(config.agent, "allow_python_exec", True),
+            model=shared_model,
+            config=config,
+        )
         task_artifacts = []
         for task_id in task_ids:
             artifact = run_single_task(
