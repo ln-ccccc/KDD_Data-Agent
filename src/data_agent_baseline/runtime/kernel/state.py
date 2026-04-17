@@ -40,6 +40,7 @@ class RuntimeState(BaseModel):
     failure_reason: str | None = None
 
     # LLM / prompt control
+    current_plan: str = ""
     abstract: AbstractMemory = Field(default_factory=AbstractMemory)
     prompt_window_steps: int = 8
     steps_since_compress: int = 0

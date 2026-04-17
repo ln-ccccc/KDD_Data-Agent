@@ -23,6 +23,13 @@ class ContextRenderer:
 
     def build_messages(self, *, task: Any, state: RuntimeState, system_prompt: str) -> list[ModelMessage]:
         system_content = build_system_prompt(self.tools_description, system_prompt=system_prompt)
+        
+        plan_text = getattr(state, "current_plan", "")
+        if plan_text:
+            system_content += f"\n\n=== CURRENT PLAN & PROGRESS ===\n{plan_text}\n===============================\n"
+        else:
+            system_content += "\n\n=== CURRENT PLAN & PROGRESS ===\nNo plan created yet. Please use the `update_plan` tool to create one.\n===============================\n"
+
         messages = [ModelMessage(role="system", content=system_content)]
 
         user_task = build_task_prompt(task)

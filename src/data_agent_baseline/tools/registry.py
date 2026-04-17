@@ -223,6 +223,12 @@ class ToolRegistry:
         return self.handlers[action](task, action_input)
 
 
+def _update_plan(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    return ToolExecutionResult(
+        ok=True,
+        content="Plan updated successfully. It is now pinned to your context."
+    )
+
 def create_default_tool_registry(
     *, 
     allow_python: bool = True, 
@@ -308,6 +314,13 @@ def create_default_tool_registry(
                 "reason": "Why the solution worked"
             },
         ),
+        "update_plan": ToolSpec(
+            name="update_plan",
+            description="Update your persistent task plan/TODO list. Use this to track progress, mark tasks as DONE, and add new sub-tasks. The plan is always visible to you.",
+            input_schema={
+                "new_plan": "The complete, updated markdown text of your plan."
+            }
+        ),
     }
 
     handlers = {
@@ -323,6 +336,7 @@ def create_default_tool_registry(
         "read_csv": _read_csv,
         "read_doc": _read_doc,
         "read_json": _read_json,
+        "update_plan": _update_plan,
     }
 
     if model and config:

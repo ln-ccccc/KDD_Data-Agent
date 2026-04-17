@@ -221,6 +221,10 @@ class LangGraphReActAgent:
             tool_result = self.tools.execute(task, model_step.action, model_step.action_input)
             tool_elapsed = round(perf_counter() - tool_started_at, 6)
 
+            # Intercept plan updates to write to RuntimeState
+            if model_step.action == "update_plan":
+                rt.current_plan = model_step.action_input.get("new_plan", rt.current_plan)
+
             observation: dict[str, Any] = {
                 "ok": tool_result.ok,
                 "tool": model_step.action,

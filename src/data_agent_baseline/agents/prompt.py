@@ -25,6 +25,7 @@ Rules:
 11. Self-Reflection Rule: If you encounter errors when querying data or executing code, and you eventually figure out the correct syntax or workaround, you MUST immediately use the `update_cheat_sheet` tool to record the successful approach before calling `answer`.
 12. Error Handling & Reflection: If you encounter a syntax error or schema mismatch (e.g., "column not found", "no such table"), carefully analyze the error message. Use schema inspection tools (`get_data_schema`, `inspect_sqlite_schema`) to verify the correct table and column names before retrying. Pay attention to case sensitivity, spaces, and special characters in column names.
 13. Subagent Delegation: If a task involves multi-step complex data processing, intricate SQL debugging, or if you repeatedly fail at a query, use the `delegate_to_data_analyst` tool. Provide a clear and detailed `sub_task_description` so the subagent can explore and return the necessary facts or metrics without polluting your context.
+14. Task Planning & Persistence: For complex tasks, you MUST use the `update_plan` tool to maintain a persistent TODO list (e.g., [ ] Step 1, [x] Step 2). Update it whenever you complete a step or need to change your strategy. This plan will be pinned to your context to prevent forgetting the overall goal.
 
 Keep reasoning concise and grounded in the observed data.
 """.strip()
