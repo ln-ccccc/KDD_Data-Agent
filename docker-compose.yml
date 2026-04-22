@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  agent-eval:
+    build: .
+    # 设置运行时的挂载卷，确保环境绝对隔离，但输出文件可被宿主机访问
+    volumes:
+      # 只读挂载原始评测数据集，防止 Agent 在执行过程中误删数据
+      - ./data/public/input:/app/data/public/input:ro
+      
+      # 将生成的执行结果（prediction.csv / trace.json）实时同步到宿主机
+      - ./artifacts/runs:/app/artifacts/runs
+      
+      # 挂载配置文件夹，方便在宿主机修改 YAML 规则后即时生效，无需重新构建镜像
+      - ./configs:/app/configs
+    
+    # 从宿主机传递核心 API 环境变量
+    environment:
+      - DATA_AGENT_API_BASE=${DATA_AGENT_API_BASE:-https://ai-gateway-internal.dp.tech}
+      - DATA_AGENT_API_KEY=${DATA_AGENT_API_KEY}
+    
+    # 容器启动时默认执行的指令，对应于 uv run dabench [COMMAND]
+    # 我们预设它为执行 50 道题全量跑分，且使用指定的 Docker 专用配置
+    command: ["run-benchmark", "--config", "configs/react_baseline.docker.yaml"]
