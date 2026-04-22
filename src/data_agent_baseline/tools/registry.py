@@ -128,7 +128,7 @@ def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolE
     entry += f"- **Solution:** {solution}\n"
     entry += f"- **Reasoning:** {reason}\n"
 
-    with open(file_path, "a") as f:
+    with open(file_path, "a", encoding="utf-8") as f:
         f.write(entry)
 
     return ToolExecutionResult(ok=True, content={"success": True, "message": f"Cheat sheet for '{topic}' updated successfully."})

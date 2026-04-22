@@ -47,7 +47,7 @@ def list_context_tree(task: PublicTask, *, max_depth: int = 4) -> dict[str, obje
 # 读取CSV文件预览，用于快速查看CSV文件的内容
 def read_csv_preview(task: PublicTask, relative_path: str, *, max_rows: int = 20) -> dict[str, object]:
     path = resolve_context_path(task, relative_path)
-    with path.open(newline="") as handle:
+    with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.reader(handle)
         rows = list(reader)
 
@@ -72,7 +72,7 @@ def read_csv_preview(task: PublicTask, relative_path: str, *, max_rows: int = 20
 def read_json_preview(task: PublicTask, relative_path: str, *, max_chars: int = 4000) -> dict[str, object]:
     path = resolve_context_path(task, relative_path)
     try:
-        payload = json.loads(path.read_text(), strict=False)
+        payload = json.loads(path.read_text(encoding="utf-8"), strict=False)
     except json.JSONDecodeError:
         # If it's not valid JSON, just read as text
         return read_doc_preview(task, relative_path, max_chars=max_chars)
@@ -86,7 +86,7 @@ def read_json_preview(task: PublicTask, relative_path: str, *, max_chars: int = 
 # 读取DOCX文件预览，用于快速查看DOCX文件的内容
 def read_doc_preview(task: PublicTask, relative_path: str, *, max_chars: int = 4000) -> dict[str, object]:
     path = resolve_context_path(task, relative_path)
-    text = path.read_text(errors="replace")
+    text = path.read_text(encoding="utf-8", errors="replace")
     return {
         "path": relative_path,
         "preview": text[:max_chars],

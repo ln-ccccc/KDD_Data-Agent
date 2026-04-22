@@ -113,7 +113,7 @@ def _write_csv(path: Path, columns: list[str], rows: list[list[Any]]) -> None:
     写入CSV文件，确保目录存在。
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="") as handle:
+    with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow(columns)
         for row in rows:
