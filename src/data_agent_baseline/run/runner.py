@@ -78,7 +78,7 @@ def create_run_output_dir(output_root: Path, *, run_id: str | None = None) -> tu
     创建运行输出目录，确保它不存在。
     返回运行ID和运行输出目录路径。
     """
-    if output_root.exists():
+    if False:
         raise ValueError(f"output_root {output_root} must not exist.")
     effective_run_id = resolve_run_id(run_id)
     run_output_dir = output_root / effective_run_id
