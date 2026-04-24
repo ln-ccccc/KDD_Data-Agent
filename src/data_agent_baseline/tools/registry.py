@@ -19,6 +19,7 @@ from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
 from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
 from data_agent_baseline.tools.eda import extract_dataframe_stats
+from data_agent_baseline.tools.knowledge_retriever import search_knowledge_doc
 from data_agent_baseline.tools.subagent import build_subagent_tool, subagent_finish
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
@@ -223,6 +224,14 @@ class ToolRegistry:
         return self.handlers[action](task, action_input)
 
 
+def _search_knowledge_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input["query"])
+    res = search_knowledge_doc(task, query)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+
 def _update_plan(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     return ToolExecutionResult(
         ok=True,
@@ -304,6 +313,11 @@ def create_default_tool_registry(
             description="Read a preview of a JSON file inside context.",
             input_schema={"path": "relative/path/to/file.json", "max_chars": 4000},
         ),
+        "search_knowledge_doc": ToolSpec(
+            name="search_knowledge_doc",
+            description="Search knowledge documents using Hybrid RAG to find relevant information.",
+            input_schema={"query": "The search query string"},
+        ),
     "update_cheat_sheet": ToolSpec(
             name="update_cheat_sheet",
             description="Record a successful solution to a previously encountered error. Use this to help yourself in future tasks.",
@@ -336,6 +350,7 @@ def create_default_tool_registry(
         "read_csv": _read_csv,
         "read_doc": _read_doc,
         "read_json": _read_json,
+        "search_knowledge_doc": _search_knowledge_doc,
         "update_plan": _update_plan,
     }
 
