@@ -18,7 +18,48 @@ def get_embedding_model():
         _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
     return _embedding_model
 
-def chunk_markdown_by_headings(content: str) -> List[Dict[str, str]]:
+def list_knowledge_headings(task: PublicTask, query: str = "") -> dict[str, object]:
+    """
+    Returns a Table of Contents (TOC) of the knowledge.md file by extracting all Markdown headings.
+    Useful for quick navigation in Easy/Medium tasks before reading specific sections.
+    """
+    knowledge_path = task.context_dir / "knowledge.md"
+    if not knowledge_path.exists():
+        return {"error": "knowledge.md not found in context directory."}
+        
+    content = knowledge_path.read_text(encoding="utf-8")
+    headings = [line.strip() for line in content.split('\n') if line.startswith('#')]
+    
+    if not headings:
+        return {"message": "No headings found. The document might be unstructured."}
+        
+    return {
+        "file": "knowledge.md",
+        "headings": headings,
+        "instruction": "Use read_knowledge_section to read the specific content under a heading."
+    }
+
+def read_knowledge_section(task: PublicTask, heading: str) -> dict[str, object]:
+    """
+    Read the exact content under a specific heading from knowledge.md.
+    Provide the exact heading string (e.g. '# Patient Status Code') returned by list_knowledge_headings.
+    """
+    knowledge_path = task.context_dir / "knowledge.md"
+    if not knowledge_path.exists():
+        return {"error": "knowledge.md not found in context directory."}
+        
+    content = knowledge_path.read_text(encoding="utf-8")
+    chunks = chunk_markdown_by_headings(content)
+    
+    # Exact or substring match for the heading
+    for chunk in chunks:
+        if heading.lower() in chunk["heading"].lower():
+            return {
+                "section": chunk["heading"],
+                "content": chunk["content"]
+            }
+            
+    return {"error": f"Section matching '{heading}' not found."}
     """Chunk markdown document by headings to preserve business context."""
     lines = content.split('\n')
     chunks = []

@@ -19,7 +19,7 @@ from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
 from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
 from data_agent_baseline.tools.eda import extract_dataframe_stats
-from data_agent_baseline.tools.knowledge_retriever import search_knowledge_doc
+from data_agent_baseline.tools.knowledge_retriever import search_knowledge_doc, list_knowledge_headings, read_knowledge_section
 from data_agent_baseline.tools.subagent import build_subagent_tool, subagent_finish
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
@@ -232,6 +232,22 @@ def _search_knowledge_doc(task: PublicTask, action_input: dict[str, Any]) -> Too
     return ToolExecutionResult(ok=True, content=res)
 
 
+def _list_knowledge_headings(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input.get("query", ""))
+    res = list_knowledge_headings(task, query)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+
+def _read_knowledge_section(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    heading = str(action_input["heading"])
+    res = read_knowledge_section(task, heading)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+
 def _update_plan(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     return ToolExecutionResult(
         ok=True,
@@ -313,6 +329,16 @@ def create_default_tool_registry(
             description="Read a preview of a JSON file inside context.",
             input_schema={"path": "relative/path/to/file.json", "max_chars": 4000},
         ),
+        "list_knowledge_headings": ToolSpec(
+            name="list_knowledge_headings",
+            description="List available headings from the knowledge documents.",
+            input_schema={"query": "Optional query string to filter headings"},
+        ),
+        "read_knowledge_section": ToolSpec(
+            name="read_knowledge_section",
+            description="Read a specific section from the knowledge documents by its heading.",
+            input_schema={"heading": "The exact heading string"},
+        ),
         "search_knowledge_doc": ToolSpec(
             name="search_knowledge_doc",
             description="Search knowledge documents using Hybrid RAG to find relevant information.",
@@ -350,6 +376,8 @@ def create_default_tool_registry(
         "read_csv": _read_csv,
         "read_doc": _read_doc,
         "read_json": _read_json,
+        "list_knowledge_headings": _list_knowledge_headings,
+        "read_knowledge_section": _read_knowledge_section,
         "search_knowledge_doc": _search_knowledge_doc,
         "update_plan": _update_plan,
     }

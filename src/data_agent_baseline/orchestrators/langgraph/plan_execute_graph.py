@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from data_agent_baseline.agents.model import ModelAdapter
-from data_agent_baseline.agents.plan_execute import _build_planner_messages, _parse_plan, _render_plan_for_prompt
+from data_agent_baseline.agents.plan_execute import _parse_plan, _render_plan_for_prompt
 from data_agent_baseline.agents.prompt import REACT_SYSTEM_PROMPT
 from data_agent_baseline.agents.runtime import AgentRunResult
 from data_agent_baseline.benchmark.schema import PublicTask
@@ -34,8 +34,17 @@ class LangGraphPlanAndExecuteAgent:
         self.config = config or LangGraphPlanAndExecuteConfig()
 
     def run(self, task: PublicTask) -> AgentRunResult:
-        planner_messages = _build_planner_messages(task, self.tools)
-        raw_plan = self.model.complete(planner_messages)
+        prompt = (
+            "You are the Planner for a Data Agent. "
+            "Your job is to read the following task and generate a high-level step-by-step plan.\n\n"
+            "CRITICAL RULES:\n"
+            "1. ADJUDICATION FIRST: Your first step MUST ALWAYS be to use `delegate_to_data_analyst` to spawn a Semantic Validator subagent. This subagent must be instructed to read knowledge.md and probe the database to verify the exact categorical values, table names, and column names required for the task.\n"
+            "2. DO NOT skip the subagent delegation. The subagent must return a precise Mapping Dictionary before any SQL is written.\n"
+            "3. Only after receiving the Mapping Dictionary should you proceed to query data.\n\n"
+            f"Question: {task.question}\n\n"
+            "Output your plan as a numbered list."
+        )
+        raw_plan = self.model.complete(prompt)
         steps = _parse_plan(raw_plan)
         plan_text = _render_plan_for_prompt(steps)
         planned_system = (

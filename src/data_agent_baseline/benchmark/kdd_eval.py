@@ -35,31 +35,72 @@ def _normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 def compare_dataframes(pred_df: pd.DataFrame, gold_df: pd.DataFrame) -> bool:
     """
-    Compare two dataframes. Returns True if they match.
-    Matches ignore column/row order and use a float tolerance.
+    Compare two dataframes based on KDD Cup 2026 Column-As-Vector Matching rules.
+    Returns True if every column in gold_df exists in pred_df (ignoring order of rows and column names).
+    Extra columns in pred_df are allowed.
     """
-    if pred_df.shape != gold_df.shape:
+    if pred_df.shape[0] != gold_df.shape[0]:
         return False
-        
+
     pred_df = _normalize_dataframe(pred_df)
     gold_df = _normalize_dataframe(gold_df)
+
+    matched_gold_cols = set()
+    used_pred_cols = set()
     
-    if list(pred_df.columns) != list(gold_df.columns):
-        return False
+    # 1. Standard Column-As-Vector matching (Order-independent)
+    for g_col in gold_df.columns:
+        g_vec = gold_df[g_col].sort_values().reset_index(drop=True)
+        for p_col in pred_df.columns:
+            if p_col in used_pred_cols:
+                continue
+            p_vec = pred_df[p_col].sort_values().reset_index(drop=True)
+            try:
+                pd.testing.assert_series_equal(
+                    g_vec, 
+                    p_vec, 
+                    check_names=False, 
+                    check_dtype=False, 
+                    check_exact=False, 
+                    atol=1e-5, 
+                    rtol=1e-5
+                )
+                used_pred_cols.add(p_col)
+                matched_gold_cols.add(g_col)
+                break
+            except AssertionError:
+                continue
+
+    # 2. Handle Name Splitting/Combining rule
+    unmatched_gold = [c for c in gold_df.columns if c not in matched_gold_cols]
+    unmatched_pred = [c for c in pred_df.columns if c not in used_pred_cols]
+    
+    if len(unmatched_gold) == 2 and len(unmatched_pred) >= 1:
+        g_vec1 = gold_df[unmatched_gold[0]].astype(str)
+        g_vec2 = gold_df[unmatched_gold[1]].astype(str)
+        g_combined_1 = (g_vec1 + " " + g_vec2).sort_values().reset_index(drop=True)
+        g_combined_2 = (g_vec2 + " " + g_vec1).sort_values().reset_index(drop=True)
         
-    try:
-        pd.testing.assert_frame_equal(
-            pred_df, 
-            gold_df, 
-            check_dtype=False,
-            check_column_type=False,
-            check_exact=False,
-            atol=1e-5,
-            rtol=1e-5
-        )
-        return True
-    except AssertionError:
-        return False
+        for p_col in unmatched_pred:
+            p_vec = pred_df[p_col].astype(str).sort_values().reset_index(drop=True)
+            try:
+                pd.testing.assert_series_equal(g_combined_1, p_vec, check_names=False)
+                matched_gold_cols.add(unmatched_gold[0])
+                matched_gold_cols.add(unmatched_gold[1])
+                used_pred_cols.add(p_col)
+                break
+            except AssertionError:
+                pass
+            try:
+                pd.testing.assert_series_equal(g_combined_2, p_vec, check_names=False)
+                matched_gold_cols.add(unmatched_gold[0])
+                matched_gold_cols.add(unmatched_gold[1])
+                used_pred_cols.add(p_col)
+                break
+            except AssertionError:
+                pass
+
+    return len(matched_gold_cols) == len(gold_df.columns)
 
 def evaluate_run(run_dir: Path, gold_dir: Path, output_report: Path | None = None) -> dict:
     """
