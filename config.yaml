@@ -1,0 +1,11 @@
+dataset:
+  root_path: "data/public/input"
+
+run:
+  run_id: "test_run_1"
+  output_dir: "artifacts/run"
+  max_workers: 1
+
+agent:
+  model: "qwen3.5-35b-a3b"
+  mode: "react"
