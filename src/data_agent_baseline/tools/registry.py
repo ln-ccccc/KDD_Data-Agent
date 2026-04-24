@@ -114,13 +114,16 @@ def _execute_python(task: PublicTask, action_input: dict[str, Any]) -> ToolExecu
     return ToolExecutionResult(ok=bool(content.get("success")), content=content)
 
 
+def _get_cheat_sheet_dir() -> Path:
+    return Path(__file__).resolve().parents[3] / "artifacts" / "cheat_sheets"
+
 def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     topic = str(action_input.get("topic", "general"))
     error_pattern = str(action_input.get("error_pattern", ""))
     solution = str(action_input.get("solution", ""))
     reason = str(action_input.get("reason", ""))
 
-    cheat_sheet_dir = Path(__file__).resolve().parents[4] / "artifacts" / "cheat_sheets"
+    cheat_sheet_dir = _get_cheat_sheet_dir()
     cheat_sheet_dir.mkdir(parents=True, exist_ok=True)
     file_path = cheat_sheet_dir / f"{topic}_hints.md"
 
@@ -253,6 +256,13 @@ def _update_plan(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutio
         ok=True,
         content="Plan updated successfully. It is now pinned to your context."
     )
+
+def _get_cheat_sheet(topic: str) -> str:
+    """Reads a cheat sheet from the artifacts directory if it exists."""
+    cheat_sheet_path = _get_cheat_sheet_dir() / f"{topic}_hints.md"
+    if cheat_sheet_path.exists():
+        return cheat_sheet_path.read_text(encoding="utf-8")
+    return "No cheat sheet available yet. Use update_cheat_sheet to add one if you find a successful query pattern."
 
 def create_default_tool_registry(
     *, 

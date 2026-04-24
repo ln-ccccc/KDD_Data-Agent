@@ -60,6 +60,8 @@ def read_knowledge_section(task: PublicTask, heading: str) -> dict[str, object]:
             }
             
     return {"error": f"Section matching '{heading}' not found."}
+
+def chunk_markdown_by_headings(content: str) -> List[Dict[str, str]]:
     """Chunk markdown document by headings to preserve business context."""
     lines = content.split('\n')
     chunks = []

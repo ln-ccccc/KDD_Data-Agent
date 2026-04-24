@@ -1,11 +1,12 @@
 dataset:
-  root_path: "data/public/input"
+  root_path: "demo_data/public/input"
 
 run:
-  run_id: "test_run_1"
+  run_id: "benchmark_v2_hybrid_rag"
   output_dir: "artifacts/run"
-  max_workers: 1
+  max_workers: 4
 
 agent:
-  model: "qwen3.5-35b-a3b"
-  mode: "react"
+  model: "gpt-4o-mini"
+  mode: "graph"
+  max_steps: 25
