@@ -1,35 +1,54 @@
-# KDD Cup Data Agent Baseline - 架构优化与演进总结
+# KDD Cup Data Agent Optimization Plan
 
-基于“比赛提分优先、适度防御”的原则，我们对官方 Starter Kit 的 Baseline 进行了深度的改造和健壮性提升。以下是本次演进的核心成果与架构变更：
-
-## 1. 核心能力引入：DuckDB 引擎
-**背景**：大模型编写复杂 Python pandas 脚本的数据分析准确率往往不如纯 SQL。
-**改造**：
-- 新增 `execute_duckdb_sql` 工具 ([duckdb_exec.py](file:///Users/dp/agent/kddcup2026-data-agents-starter-kit/src/data_agent_baseline/tools/duckdb_exec.py))。
-- 允许大模型直接对本地沙箱中的 CSV、JSON 和 Parquet 文件执行原生 SQL 查询（例如：`SELECT * FROM 'data.csv'`）。
-- **权限与隔离**：通过 `file_search_path`、`extension_directory` 和 `home_directory` 限制 DuckDB 的运行上下文，确保其无法越权读取沙箱外数据，同时解决了动态下载扩展（如 `json`, `sqlite`）时的权限报错问题。
-
-## 2. 自动化错题本与自省机制 (Auto-Reflection & Cheat Sheets)
-**背景**：DuckDB 处理复杂 JSON 数组或跨库关联时有特定的语法陷阱（如 `read_json_auto`、`maximum_object_size` 等），大模型容易陷入无休止的语法试错并耗尽 16 步（max_steps）。
-**改造**：
-- **放弃规则硬编码兜底**：坚守 Agent 哲学，不在 Python 底层用正则强行改写模型的 SQL。
-- **构建 Cheat Sheets 体系**：在 `artifacts/cheat_sheets/` 下建立了按文件类型划分的知识库（如 `json_hints.md`, `sqlite_hints.md`）。
-- **工具级动态注入**：在文件预览工具（如 `read_json`, `inspect_sqlite_schema`）被调用时，自动将对应的错题集作为 `[Your Previous Learnings]` 强塞给大模型的 `observation`，实现防呆。
-- **自我学习闭环**：新增 `update_cheat_sheet` 工具并在 System Prompt 强制要求：大模型在连续犯错并最终成功后，必须调用该工具将成功的经验记录到对应的 `.md` 中，实现跨 Task 的经验传承。
-
-## 3. 增强的系统级鲁棒性与可观测性
-**背景**：模型 API 抽风返回空内容，或父进程超时导致 trace 文件为空，难以排查死因。
-**改造**：
-- **API 层重试机制 (Retry Loop)**：在 [model.py](file:///Users/dp/agent/kddcup2026-data-agents-starter-kit/src/data_agent_baseline/agents/model.py) 中，如果模型返回 `content=None`（非安全拦截的无故罢工），系统会自动追加 `user` 提示要求重试，最大重试 2 次。这挽救了如 `task_145` 等偶发失败的任务。
-- **请求级超时熔断**：为 `client.chat.completions.create` 增加 `timeout=90.0`，防止单次模型推理卡死拖垮 600s 的全局超时。
-- **防空白 Trace**：在 `runner.py` 子进程增加启动心跳。如果全局超时导致进程被强制 kill，父进程会自动伪造一条包含超时原因的 `steps` 写入 `trace.json`。
-- **调试开关**：引入环境变量 `ENABLE_MODEL_DEBUG=1`，开启后可在终端实时观测模型的 `finish_reason`、返回类型及 `tool_calls` 明细。
-
-## 4. 验证与成果
-在开启所有修复与自学习机制后，我们在全量 50 个 Task 的 Benchmark 中观察到：
-1. `task_64` (大 JSON 嵌套查询) 完美避坑，一次性写对 `read_json_auto` 与 `UNNEST`。
-2. `task_145` (多源 SQLite+CSV 联合查询) 避开了不支持的 `sqlite_scan` 相对路径陷阱，主动降级为分步查询与关联。
-3. 整体工具链的稳定性达到极高水平，未出现任何因解析器本身缺陷导致的 Crash。
+## 核心痛点回顾
+当前的 Data Agent 在面对复杂任务（特别是 Hard/Extreme 难度）时，存在三个核心缺陷：
+1. **知识忽略与盲猜（Knowledge Deficit & Blind Guessing）**：模型常常跳过文档读取，直接凭借先验知识（如英文直译捷克语）在 SQL 中盲猜分类值，导致返回 0 行。
+2. **缺乏语义裁决（No Semantic Adjudication）**：单纯的检索（无论是 BM25 还是 Embedding）只能“找到候选知识”，但缺乏机制去验证这些知识在实际数据库中是否存在（例如：检索到规则说“状态=活跃”，但数据库实际存的是“status=1”）。
+3. **子代理角色模糊（Underutilized Subagent）**：虽然代码库中存在 LangGraph 隔离的子代理（`delegate_to_data_analyst`），但其触发是“被动的”，且职责不够清晰（仅仅是“帮主代理写代码”），未能发挥其作为独立“数据探查官”的潜力。
 
 ---
-*Date: 2026-04-07*
+
+## 总体架构重构目标
+将 Data Agent 从“可选查资料的单体问答机”升级为**“强制查证的流水线系统（Pipeline of Experts）”**。
+核心链路固定为：`Query → Retrieve (混合检索) → Adjudicate (语义裁决/对齐) → Reason & Generate (生成SQL) → Answer`。
+
+---
+
+## 具体的优化阶段与任务清单 (Action Items)
+
+### Phase 1: 底层工具链的强化与防呆 (已部分完成)
+**目标：阻断最底层的“盲猜”路径，提升检索与探查的精确度。**
+
+- [x] **1. 增强 `get_data_schema` (EDA 探查)**：修改 `filesystem.py`，在提取表结构时，自动对 VARCHAR/INTEGER 列执行 `SELECT DISTINCT ... LIMIT 10`。让模型在查表时强制看到真实的数据样本。
+- [x] **2. 引入 Hybrid RAG (`search_knowledge_doc`)**：新增专门的知识检索工具，按 Markdown 标题切块。对于 Easy/Medium 任务使用纯 BM25；对于 Hard/Extreme 任务使用 BM25 + Embedding + RRF 重排，解决纯词频匹配的语义缺失问题。
+- [x] **3. 强化主 Prompt (`REACT_SYSTEM_PROMPT`)**：在系统提示词中增加“MANDATORY KNOWLEDGE CHECK”和“ZERO-RESULT REFLECTION”的强约束。
+
+### Phase 2: 构建“语义裁决层 (Semantic Adjudication Layer)” (待执行)
+**目标：解决“检索到了规则，但与数据库 Schema 不匹配”的致命问题。这也是你指出的系统结构核心缺失。**
+
+- [ ] **1. 重塑 Subagent 职责**：修改 `prompt.py` 中的 `SUBAGENT_SYSTEM_PROMPT`。将子代理的定位从“Data Analyst”改为“**Semantic Validator (语义校验官)**”。它的唯一任务是：拿着主代理检索到的业务规则，去数据库里探查，验证规则中的实体到底对应哪张表的哪个列、哪个确切的枚举值。
+- [ ] **2. 强制的前置委派机制 (Proactive Delegation)**：修改 `plan_execute_graph.py` 中的 Planner 逻辑。在生成执行计划时，**强制规定第一步必须是调用 `delegate_to_data_analyst` 进行语义裁决**。主代理不能在没有拿到“校验过的映射字典（Mapping Dict）”前就去写 SQL。
+- [ ] **3. 规范裁决输出格式**：修改 `subagent_finish` 工具的契约。要求子代理必须返回结构化的 `adjudicated_rules`（例如：明确指出“现金取款”对应 `trans.csv` 的 `operation='VYBER'`），主代理拿到这个报告后，直接“填空”写 SQL，彻底杜绝幻觉。
+
+### Phase 3: 检索策略的进阶与防噪 (待执行)
+**目标：解决 Easy/Medium 难度下的检索降级问题，防止同义词扩展引入噪声。**
+
+- [ ] **1. 大纲导航阅读 (TOC-based Exact Reading)**：为短文档（Easy/Medium）新增一个极轻量级的工具 `list_knowledge_headings`。大模型先看目录（如 `['# User Status', '# Error Codes']`），再按需调用 `read_knowledge_section` 精确读取特定段落。这完全绕过了 BM25/Embedding 的匹配缺陷。
+- [ ] **2. 优化 Query Rewrite**：在主代理调用检索工具前，引导其将用户的自然语言 Query 提取为核心实体，而不是盲目发散。扩展词仅作为 Hybrid RAG 中的次要召回权重，确保检索不偏离主轴。
+
+### Phase 4: 本地评测环境的修复与打榜验证 (待执行)
+**目标：确保我们能真实量化每一次架构调整带来的分数收益。**
+
+- [ ] **1. 修复官方评测脚本 Bug**：我们之前发现官方的 `kdd_eval.py` 在对比 DataFrame 时存在严重的列名强校验 Bug（导致本该对的题判为 0 分）。需要把本地修复版（支持 `Full Name` 组合和无序列匹配）彻底固化到跑测流程中。
+- [ ] **2. 修复本地数据集路径**：解决刚才在 CLI 中遇到的 `Missing task.json` 和目录挂载路径不一致的问题，确保 `run-benchmark` 能顺畅跑完所有公开的 50 道 Demo 题。
+- [ ] **3. 端到端 A/B 测试**：在完成 Phase 1 和 Phase 2 的重构后，选取极具代表性的 Task 38（捷克语枚举分类）和 Task 80（跨表实体歧义），跑出具体的 `trace.json`，验证“语义裁决层”是否成功拦截了幻觉。
+
+---
+
+## 我们现在的进度对齐
+
+你之前说得非常透彻：**“本质问题不在检索策略，而在系统结构。检索解决‘找到什么’，而正确性依赖‘如何验证’。”**
+
+这份 Plan 的核心灵魂就是 **Phase 2（语义裁决层）**。我们不再纠结于用什么高级的 Embedding 模型去大海捞针，而是通过架构层面的“强校验”，逼迫大模型在生成 SQL 前，必须拿到由 Subagent 签发的“数据库实体映射通行证”。
+
+你觉得这份 Plan 的思路和优先级排序是否符合你的预期？如果没问题，我们可以直接进入 **Phase 2.1**，开始重写 Subagent 的提示词和核心契约！
