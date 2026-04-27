@@ -20,6 +20,7 @@ from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqli
 from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
 from data_agent_baseline.tools.eda import extract_dataframe_stats
 from data_agent_baseline.tools.knowledge_retriever import search_knowledge_doc, list_knowledge_headings, read_knowledge_section
+from data_agent_baseline.tools.schema_retriever import retrieve_schema_context
 from data_agent_baseline.tools.subagent import build_subagent_tool, subagent_finish
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
@@ -250,6 +251,26 @@ def _read_knowledge_section(task: PublicTask, action_input: dict[str, Any]) -> T
         res = {"result": res}
     return ToolExecutionResult(ok=True, content=res)
 
+def _retrieve_schema_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input["query"])
+    top_k = int(action_input.get("top_k", 10))
+    # We expect schema_catalog.json to be in the task output directory, but since we are executing tools, 
+    # the SSOT catalog is generated during runner initialization and placed there.
+    # Alternatively, the Semantic Validator subagent can generate it in context_dir.
+    # We will assume it is available in context_dir or we dynamically generate it if missing.
+    from data_agent_baseline.tools.schema_catalog import build_schema_catalog
+    import json
+    
+    catalog_path = task.context_dir / "schema_catalog.json"
+    if not catalog_path.exists():
+        # Generate on the fly if it wasn't saved yet
+        catalog = build_schema_catalog(task)
+        with open(catalog_path, 'w', encoding='utf-8') as f:
+            json.dump(catalog, f, ensure_ascii=False)
+            
+    res = retrieve_schema_context(catalog_path, query, top_k)
+    return ToolExecutionResult(ok=True, content=res)
+
 
 def _update_plan(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     return ToolExecutionResult(
@@ -354,6 +375,14 @@ def create_default_tool_registry(
             description="Search knowledge documents using Hybrid RAG to find relevant information.",
             input_schema={"query": "The search query string"},
         ),
+        "retrieve_schema_context": ToolSpec(
+            name="retrieve_schema_context",
+            description="Use Hybrid RAG (BM25 + Qwen2 Embedding) to search the database Schema Catalog. This retrieves the Top-K most relevant tables, columns, data types, and sampled values for your natural language query. ALWAYS use this to map business terms to actual database fields.",
+            input_schema={
+                "query": "The natural language query describing what fields or entities you are looking for",
+                "top_k": 10
+            }
+        ),
     "update_cheat_sheet": ToolSpec(
             name="update_cheat_sheet",
             description="Record a successful solution to a previously encountered error. Use this to help yourself in future tasks.",
@@ -389,6 +418,7 @@ def create_default_tool_registry(
         "list_knowledge_headings": _list_knowledge_headings,
         "read_knowledge_section": _read_knowledge_section,
         "search_knowledge_doc": _search_knowledge_doc,
+        "retrieve_schema_context": _retrieve_schema_context,
         "update_plan": _update_plan,
     }
 
