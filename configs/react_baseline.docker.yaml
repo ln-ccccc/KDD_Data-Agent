@@ -1,0 +1,33 @@
+dataset:
+  root_path: data/public/input
+
+agent:
+  model: gemini-2.5-flash
+  api_base: https://ai-gateway-internal.dp.tech
+  # 强烈建议通过环境变量 DATA_AGENT_API_KEY 注入，不在此处明文保留
+  api_key: ${DATA_AGENT_API_KEY}
+  max_steps: 64
+  temperature: 0.0
+  mode: hybrid  # react | hybrid
+  seed_enabled: false
+  request_timeout_seconds: 60
+  retry:
+    max_retries: 3
+    backoff_seconds: 1.0
+  # Context compression (to prevent token explosion)
+  max_prompt_chars: 24000
+  compress_trigger_steps: 12
+  history_max_steps: 8
+
+run:
+  output_dir: artifacts/runs
+  run_id: docker_benchmark_run
+  
+  # 【核心并发配置】
+  # 设为 1，完美模拟官方单题沙箱隔离环境，彻底告别 DuckDB 死锁/网络波动导致的多进程超时
+  max_workers: 1
+  
+  # 单个任务硬超时时间。因为 max_workers=1 且环境独占，600 秒足够
+  task_timeout_seconds: 600
+  
+  trace_level: standard  # minimal | standard | verbose

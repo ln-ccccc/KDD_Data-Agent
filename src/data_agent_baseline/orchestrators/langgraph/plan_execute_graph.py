@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from data_agent_baseline.agents.model import ModelAdapter
-from data_agent_baseline.agents.plan_execute import _parse_plan, _render_plan_for_prompt
-from data_agent_baseline.agents.prompt import REACT_SYSTEM_PROMPT
+from data_agent_baseline.agents.plan_execute import _parse_plan, _render_plan_for_promptfrom data_agent_baseline.agents.prompt import REACT_SYSTEM_PROMPT
 from data_agent_baseline.agents.runtime import AgentRunResult
 from data_agent_baseline.benchmark.schema import PublicTask
 from data_agent_baseline.orchestrators.langgraph.react_graph import LangGraphReActAgent, LangGraphReActAgentConfig
@@ -23,7 +22,6 @@ class LangGraphPlanAndExecuteAgent:
     """Plan first, then run the ReAct loop inside a LangGraph state machine.
     Uses a Hard Gate to enforce Semantic Validation before planning and execution.
     """
-
     def __init__(
         self,
         *,
@@ -72,8 +70,7 @@ class LangGraphPlanAndExecuteAgent:
         planned_system = (
             f"{REACT_SYSTEM_PROMPT}\n\nHigh-level plan:\n{plan_text}\n\n"
             f"### Verified Semantic Mapping (HARD GATE)\n{mapping_dict}\n\n"
-            "Follow the plan and MUST use the verified semantic mapping above to write accurate SQL. "
-            "Use tools to gather evidence and then submit the final answer."
+            "Follow the plan and MUST use the verified semantic mapping above to write accurate SQL. "            "Use tools to gather evidence and then submit the final answer."
         )
         react = LangGraphReActAgent(
             model=self.model,

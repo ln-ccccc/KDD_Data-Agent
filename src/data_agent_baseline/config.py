@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import os
 import yaml
 
 from data_agent_baseline.core.types import RetryPolicy, TraceLevel
@@ -90,10 +91,13 @@ def load_app_config(config_path: Path) -> AppConfig:
     dataset_config = DatasetConfig(
         root_path=_path_value(dataset_payload.get("root_path"), dataset_defaults.root_path),
     )
+    api_base_val = os.environ.get("DATA_AGENT_API_BASE") or agent_payload.get("api_base", agent_defaults.api_base)
+    api_key_val = os.environ.get("DATA_AGENT_API_KEY") or agent_payload.get("api_key", agent_defaults.api_key)
+
     agent_config = AgentConfig(
         model=str(agent_payload.get("model", agent_defaults.model)),
-        api_base=str(agent_payload.get("api_base", agent_defaults.api_base)),
-        api_key=str(agent_payload.get("api_key", agent_defaults.api_key)),
+        api_base=str(api_base_val),
+        api_key=str(api_key_val),
         max_steps=int(agent_payload.get("max_steps", agent_defaults.max_steps)),
         temperature=float(agent_payload.get("temperature", agent_defaults.temperature)),
         mode=str(agent_payload.get("mode", agent_defaults.mode)),
