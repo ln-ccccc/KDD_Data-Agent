@@ -1,4 +1,4 @@
-FROM m.daocloud.io/docker.io/library/python:3.11-slim
+FROM docker.m.daocloud.io/python:3.11-slim
 
 # 安装系统基础依赖与 curl (用于安装 uv)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 uv 包管理器
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=docker.m.daocloud.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # 设置工作目录
 WORKDIR /app
