@@ -17,7 +17,7 @@ agent:
   # Context compression (to prevent token explosion)
   max_prompt_chars: 24000
   compress_trigger_steps: 12
-  history_max_steps: 8
+  history_max_steps: 16
 
 run:
   output_dir: artifacts/runs

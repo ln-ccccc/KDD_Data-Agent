@@ -29,21 +29,21 @@ class AgentConfig:
     model: str = "gemini-2.5-flash"
     api_base: str = ""
     api_key: str = ""
-    max_steps: int = 16
+    max_steps: int = 64
     temperature: float = 0.0
     # react: original hand-rolled ReAct loop
     # hybrid: planner -> ReAct (hand-rolled)
     # graph: LangGraph-based ReAct loop (same JSON action protocol)
     # hybrid_graph: planner -> LangGraph ReAct
-    mode: str = "hybrid"
-    seed: int | None = None
-    seed_enabled: bool = False
+    mode: str = "react"
+    seed: int | None = 42
+    seed_enabled: bool = True
     request_timeout_seconds: float = 60.0
     retry: RetryPolicy = field(default_factory=RetryPolicy)
     # Context / memory knobs (lightweight, for benchmark stability)
     max_prompt_chars: int = 24_000
     compress_trigger_steps: int = 12
-    history_max_steps: int = 8
+    history_max_steps: int = 16
 
 
 @dataclass(frozen=True, slots=True)

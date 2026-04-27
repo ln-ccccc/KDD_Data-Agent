@@ -445,8 +445,8 @@ def create_default_tool_registry(
                 model=model,
                 tools=sub_tools,
                 config=LangGraphReActAgentConfig(
-                    max_steps=getattr(config.agent, "max_steps", 16) // 2, # Give subagent less steps
-                    history_max_steps=getattr(config.agent, "history_max_steps", 8),
+                    max_steps=getattr(config.agent, "max_steps", 64) // 2, # Give subagent less steps
+                    history_max_steps=getattr(config.agent, "history_max_steps", 16),
                     max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24000),
                     compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
                 ),
