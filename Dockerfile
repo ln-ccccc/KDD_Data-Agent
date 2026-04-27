@@ -1,13 +1,19 @@
-FROM docker.m.daocloud.io/python:3.11-slim
+FROM python:3.11-slim
 
 # 安装系统基础依赖与 curl (用于安装 uv)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 如果 apt-get 在国内太慢，我们还可以替换为阿里云镜像源
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 uv 包管理器
-COPY --from=docker.m.daocloud.io/astral-sh/uv:latest /uv /uvx /bin/
+# 方案二：不再依赖多阶段构建，直接在当前镜像内部通过官方脚本安装 uv
+# 这避开了从外部 registry 拉取 ghcr.io 镜像时的超时和 403 问题
+# 为了加速 uv 安装包，我们设置代理
+ENV UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/bin" sh
 
 # 设置工作目录
 WORKDIR /app
