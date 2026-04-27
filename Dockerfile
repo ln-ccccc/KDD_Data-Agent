@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM m.daocloud.io/docker.io/library/python:3.11-slim
 
 # 安装系统基础依赖与 curl (用于安装 uv)
 RUN apt-get update && apt-get install -y --no-install-recommends \
