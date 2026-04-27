@@ -80,14 +80,25 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
         stringified_rows = []
         for row in limited_rows:
             stringified_rows.append([str(val) if val is not None else None for val in row])
-        
-        return {
+
+        result = {
             "success": True,
             "columns": column_names,
             "rows": stringified_rows,
             "row_count": len(limited_rows),
             "truncated": truncated,
         }
+
+        # 0-row interception: Add a soft warning to trigger Reflection
+        if len(limited_rows) == 0 and sql.strip().upper().startswith("SELECT"):
+            result["warning"] = (
+                "Query executed successfully but returned 0 rows. "
+                "This usually means your WHERE clause is too strict or you guessed the wrong categorical value/spelling. "
+                "Please DO NOT submit an empty answer. "
+                "Use `retrieve_schema_context` or `execute_duckdb_sql` with `SELECT DISTINCT ...` to verify the actual values in the database before rewriting your SQL."
+            )
+
+        return result
     except Exception as e:
         return {
             "success": False,

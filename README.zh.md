@@ -168,7 +168,10 @@ uv run dabench <command> --config PATH [options]
 | `read_doc` | 读取文本文档预览。 | `path`、`max_chars` |
 | `inspect_sqlite_schema` | 查看 SQLite / DB 文件中的表结构。 | `path` |
 | `execute_context_sql` | 对 `context/` 内 SQLite / DB 文件执行只读 SQL。 | `path`、`sql`、`limit` |
+| `execute_duckdb_sql` | 对 `context/` 内任何数据文件（CSV, JSON, SQLite等）执行 SQL。 | `sql`、`limit` |
 | `execute_python` | 在任务 `context/` 目录内执行任意 Python 代码。 | `code` |
+| `retrieve_schema_context` | 使用 Hybrid RAG (BM25 + Qwen2) 从本地 Schema Catalog 中精准检索与自然语言最相关的表和列。 | `query`、`top_k` |
+| `delegate_to_data_analyst` | 启动一个语义校验子代理（Hard Gate），去数据库中核实具体的枚举值和业务缩写，返回 Mapping Dict。 | `sub_task_description` |
 | `answer` | 提交最终答案表格并结束当前任务。 | `columns`、`rows` |
 
 所有文件路径都必须是相对于任务 `context/` 目录的相对路径。
