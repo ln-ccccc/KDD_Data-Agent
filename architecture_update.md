@@ -6,6 +6,13 @@
 2. **缺乏语义裁决（No Semantic Adjudication）**：单纯的检索（无论是 BM25 还是 Embedding）只能“找到候选知识”，但缺乏机制去验证这些知识在实际数据库中是否存在（例如：检索到规则说“状态=活跃”，但数据库实际存的是“status=1”）。
 3. **子代理角色模糊（Underutilized Subagent）**：虽然代码库中存在 LangGraph 隔离的子代理（`delegate_to_data_analyst`），但其触发是“被动的”，且职责不够清晰（仅仅是“帮主代理写代码”），未能发挥其作为独立“数据探查官”的潜力。
 
+### 4. 为什么还要用看似“落后”的 BM25？纯 Embedding 不够吗？
+**疑问**：在 LLM 时代，BM25 这种基于词频统计的古老算法是不是太落后了？是不是因为性能妥协才用的？
+**技术研判**：**完全不是妥协，BM25 在 Text-to-SQL 领域是不可或缺的 SOTA 标配。**
+- **Embedding 的致命缺陷（过度泛化）**：Dense Embedding（稠密向量）擅长捕捉“语义”。当用户说“利润”时，它能帮你找到 `revenue` 或 `net_income`。但当用户寻找特定专有名词、UUID、商品代号（如 `SKU-9982`）、或者奇怪的数据库缩写时，大模型的 Tokenizer 往往会把这些词切碎，导致向量在空间中丢失精确匹配的能力。
+- **Text-to-SQL 的极高精确度要求**：SQL 生成是一个“差之毫厘，执行报错”的任务。如果用户问的是“查找状态为 `ACTV` 的用户”，Embedding 可能会因为语义相近把 `status='ONLINE'` 召回排在前面，而 BM25 会因为 `ACTV` 这个罕见词的 TF-IDF 极高，死死把它钉在 Top 1。
+- **Hybrid RAG 的本质（双通道互补）**：业界最先进的 Schema Linking 系统（包括 BIRD 等高难度榜单的前排方案）清一色采用 **BM25（负责硬匹配/精准兜底） + Dense Embedding（负责软匹配/语义泛化）**，最后通过 RRF（Reciprocal Rank Fusion）等算法进行融合重排。BM25 提供极高的 Precision（精确率），Embedding 提供极高的 Recall（召回率），两者缺一不可。
+
 ---
 
 ## 总体架构重构目标
