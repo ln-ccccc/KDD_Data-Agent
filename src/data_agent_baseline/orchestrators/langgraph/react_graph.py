@@ -28,8 +28,8 @@ from data_agent_baseline.tools.registry import ToolRegistry
 
 @dataclass(frozen=True, slots=True)
 class LangGraphReActAgentConfig:
-    max_steps: int = 64
-    history_max_steps: int = 16  # default prompt window
+    max_steps: int = 16
+    history_max_steps: int = 8  # default prompt window
     observation_max_string_chars: int = 4000
     observation_max_list_items: int = 50
     parse_repair_max_retries: int = 1
@@ -303,14 +303,16 @@ class LangGraphReActAgent:
         reflection_hint = ""
         
         # 1. Hard Errors (Exception or Tool failed)
-        if not last_step.ok and isinstance(last_step.observation, dict):            error_info = last_step.observation.get("error")
+        if not last_step.ok and isinstance(last_step.observation, dict):
+            error_info = last_step.observation.get("error")
             content = last_step.observation.get("content", {})
             if isinstance(content, dict) and not error_info:
                 if "error" in content:
                     error_info = content.get("error")
 
             if error_info:
-                needs_reflection = True                error_type = error_info.get("type", "UnknownError") if isinstance(error_info, dict) else "Error"
+                needs_reflection = True
+                error_type = error_info.get("type", "UnknownError") if isinstance(error_info, dict) else "Error"
                 error_msg = error_info.get("message", str(error_info)) if isinstance(error_info, dict) else str(error_info)
                 reflection_hint = (
                     f"REFLECTION: The tool '{last_step.action}' failed with {error_type}. "
@@ -339,6 +341,7 @@ class LangGraphReActAgent:
             if not isinstance(last_step.observation, dict):
                 last_step.observation = {"original_content": last_step.observation}
             last_step.observation["reflection_hint"] = reflection_hint
+
         gs["rt"] = rt.to_langgraph_dict()
         return gs
 
