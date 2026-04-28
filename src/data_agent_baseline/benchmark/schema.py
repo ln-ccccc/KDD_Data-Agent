@@ -48,11 +48,22 @@ class PublicTask:
 
 @dataclass(frozen=True, slots=True)
 class AnswerTable:
-    columns: list[str]
-    rows: list[list[Any]]
+    columns: list[str] | None = None
+    rows: list[list[Any]] | None = None
+    final_sql: str | None = None
+    file_path: str | None = None
+    allow_empty_result: bool | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "columns": list(self.columns),
-            "rows": [list(row) for row in self.rows],
-        }
+        res: dict[str, Any] = {}
+        if self.columns is not None:
+            res["columns"] = list(self.columns)
+        if self.rows is not None:
+            res["rows"] = [list(row) for row in self.rows]
+        if self.final_sql is not None:
+            res["final_sql"] = self.final_sql
+        if self.file_path is not None:
+            res["file_path"] = self.file_path
+        if self.allow_empty_result is not None:
+            res["allow_empty_result"] = self.allow_empty_result
+        return res

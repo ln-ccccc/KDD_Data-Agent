@@ -26,6 +26,7 @@ from data_agent_baseline.benchmark.dataset import DABenchPublicDataset
 from data_agent_baseline.config import AppConfig
 from data_agent_baseline.runtime.trace import prune_trace_payload, write_json
 from data_agent_baseline.tools.registry import ToolRegistry, create_default_tool_registry
+from data_agent_baseline.tools.schema_catalog import save_schema_catalog
 
 
 @dataclass(frozen=True, slots=True)
@@ -279,7 +280,7 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
     return _failure_run_result_payload(task_id, "Task exited without returning a result.")
 
 
-def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str, Any]) -> TaskRunArtifacts:
+def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str, Any], task: Any = None) -> TaskRunArtifacts:
     """
     写入任务运行输出，包括trace.json和prediction.csv。
     """
@@ -290,15 +291,72 @@ def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str
     trace_payload = prune_trace_payload(dict(run_result), trace_level=trace_level)
     _write_json(trace_path, trace_payload)
 
+    # 1. 提取 SchemaCatalog 并存为 JSON，用作后续分析或二次索引
+    if task:
+        try:
+            save_schema_catalog(task, task_output_dir)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+
     prediction_csv_path: Path | None = None
     answer = run_result.get("answer")
     if isinstance(answer, dict):
         prediction_csv_path = task_output_dir / "prediction.csv"
-        _write_csv(
-            prediction_csv_path,
-            list(answer.get("columns", [])),
-            [list(row) for row in answer.get("rows", [])],
-        )
+        final_sql = answer.get("final_sql")
+        file_path = answer.get("file_path")
+        if isinstance(final_sql, str) and final_sql.strip():
+            import duckdb
+
+            from data_agent_baseline.tools.duckdb_exec import DUCKDB_EXT_DIR
+
+            try:
+                conn = duckdb.connect(
+                    ":memory:",
+                    config={
+                        "extension_directory": DUCKDB_EXT_DIR.as_posix(),
+                        "home_directory": task.context_dir.resolve().as_posix() if task else None,
+                    },
+                )
+                try:
+                    conn.execute("LOAD json;")
+                except Exception:
+                    pass
+                try:
+                    conn.execute("LOAD sqlite;")
+                    conn.execute("LOAD excel;")
+                except Exception:
+                    pass
+                if task is not None:
+                    resolved_context = task.context_dir.resolve().as_posix()
+                    conn.execute(f"SET file_search_path = '{resolved_context}'")
+                out_path = prediction_csv_path.resolve().as_posix()
+                sql = final_sql.strip().rstrip(";")
+                conn.execute(f"COPY ({sql}) TO '{out_path}' (HEADER, DELIMITER ',');")
+                conn.close()
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+        elif isinstance(file_path, str) and file_path.strip():
+            import os
+            import shutil
+
+            src_path = file_path
+            if task is not None and not os.path.isabs(file_path):
+                src_path = str(task.context_dir / file_path)
+            try:
+                shutil.copy(src_path, prediction_csv_path)
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+        else:
+            _write_csv(
+                prediction_csv_path,
+                list(answer.get("columns", [])),
+                [list(row) for row in answer.get("rows", [])],
+            )
 
     return TaskRunArtifacts(
         task_id=task_id,
@@ -328,7 +386,12 @@ def run_single_task(
         run_result = _run_single_task_core(task_id=task_id, config=config, model=model, tools=tools)
     run_result["e2e_elapsed_seconds"] = round(perf_counter() - started_at, 3)
     run_result["trace_level"] = getattr(config.run, "trace_level", "standard")
-    return _write_task_outputs(task_id, run_output_dir, run_result)
+    
+    # fetch task
+    public_dataset = DABenchPublicDataset(config.dataset.root_path)
+    task = public_dataset.get_task(task_id)
+    
+    return _write_task_outputs(task_id, run_output_dir, run_result, task=task)
 
 
 def run_benchmark(

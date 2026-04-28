@@ -32,6 +32,9 @@ artifacts/*
 # Local configs
 configs/*
 
+# Large local datasets
+tmp_dataset/
+
 # OS / notebook noise
 .DS_Store
 .ipynb_checkpoints/

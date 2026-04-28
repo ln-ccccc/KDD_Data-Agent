@@ -28,8 +28,8 @@ from data_agent_baseline.tools.registry import ToolRegistry
 
 @dataclass(frozen=True, slots=True)
 class LangGraphReActAgentConfig:
-    max_steps: int = 16
-    history_max_steps: int = 8  # default prompt window
+    max_steps: int = 64
+    history_max_steps: int = 16  # default prompt window
     observation_max_string_chars: int = 4000
     observation_max_list_items: int = 50
     parse_repair_max_retries: int = 1
@@ -295,29 +295,52 @@ class LangGraphReActAgent:
         rt = coerce_state(gs.get("rt") or {})
         if not rt.steps:
             return gs
-            
+
         last_step = rt.steps[-1]
+        
+        # Determine if we need to reflect based on tool execution outcome
+        needs_reflection = False
+        reflection_hint = ""
+        
+        # 1. Hard Errors (Exception or Tool failed)
         if not last_step.ok and isinstance(last_step.observation, dict):
-            # check for exception error or tool content error
             error_info = last_step.observation.get("error")
             content = last_step.observation.get("content", {})
             if isinstance(content, dict) and not error_info:
                 if "error" in content:
                     error_info = content.get("error")
-                    
+
             if error_info:
+                needs_reflection = True
                 error_type = error_info.get("type", "UnknownError") if isinstance(error_info, dict) else "Error"
                 error_msg = error_info.get("message", str(error_info)) if isinstance(error_info, dict) else str(error_info)
                 reflection_hint = (
                     f"REFLECTION: The tool '{last_step.action}' failed with {error_type}. "
                     f"Error details: {error_msg}. "
                     "Analyze the error message and traceback to understand what went wrong. "
-                    "If it is a schema mismatch or syntax error, use inspection tools like `get_data_schema` "
-                    "or `inspect_sqlite_schema` to verify your assumptions before retrying. "
+                    "If it is a schema mismatch or syntax error, use inspection tools like `retrieve_schema_context` "
+                    "or `get_data_schema` to verify your assumptions before retrying. "
                     "If you find a fix, remember to use `update_cheat_sheet`."
                 )
-                last_step.observation["reflection_hint"] = reflection_hint
                 
+        # 2. Soft Errors (Execution succeeded but returned 0 rows or warnings)
+        elif last_step.ok and isinstance(last_step.observation, dict):
+            content = last_step.observation.get("content", {})
+            if isinstance(content, dict) and "warning" in content:
+                needs_reflection = True
+                # Override the 'ok' status so the LLM pays attention to the failure
+                last_step.ok = False
+                warning_msg = content.get("warning", "")
+                reflection_hint = (
+                    f"REFLECTION (Data Anomaly): {warning_msg} "
+                    "You MUST NOT submit this empty result as your final answer. "
+                    "Reflect on your query logic, remove overly strict WHERE clauses, or search the Schema Catalog for the correct spelling."
+                )
+
+        if needs_reflection:
+            if not isinstance(last_step.observation, dict):
+                last_step.observation = {"original_content": last_step.observation}
+            last_step.observation["reflection_hint"] = reflection_hint
         gs["rt"] = rt.to_langgraph_dict()
         return gs
 
@@ -425,13 +448,21 @@ class LangGraphReActAgent:
             )
 
         answer_dict = rt.answer
-        if isinstance(answer_dict, dict) and answer_dict.get("columns") is not None:
+        if isinstance(answer_dict, dict):
             from data_agent_baseline.benchmark.schema import AnswerTable  # local import
 
-            runtime_state.answer = AnswerTable(
-                columns=list(answer_dict.get("columns", [])),
-                rows=[list(row) for row in answer_dict.get("rows", [])],
-            )
+            if answer_dict.get("final_sql") is not None or answer_dict.get("file_path") is not None:
+                runtime_state.answer = AnswerTable(
+                    final_sql=answer_dict.get("final_sql"),
+                    file_path=answer_dict.get("file_path"),
+                    allow_empty_result=answer_dict.get("allow_empty_result"),
+                )
+            elif answer_dict.get("columns") is not None:
+                runtime_state.answer = AnswerTable(
+                    columns=list(answer_dict.get("columns", [])),
+                    rows=[list(row) for row in answer_dict.get("rows", [])],
+                    allow_empty_result=answer_dict.get("allow_empty_result"),
+                )
         runtime_state.failure_reason = rt.failure_reason
         if runtime_state.answer is None and not runtime_state.failure_reason:
             runtime_state.failure_reason = "Agent stopped without an answer."

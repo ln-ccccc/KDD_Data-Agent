@@ -19,6 +19,8 @@ from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
 from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
 from data_agent_baseline.tools.eda import extract_dataframe_stats
+from data_agent_baseline.tools.knowledge_retriever import search_knowledge_doc, list_knowledge_headings, read_knowledge_section
+from data_agent_baseline.tools.schema_retriever import retrieve_schema_context
 from data_agent_baseline.tools.subagent import build_subagent_tool, subagent_finish
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
@@ -113,13 +115,16 @@ def _execute_python(task: PublicTask, action_input: dict[str, Any]) -> ToolExecu
     return ToolExecutionResult(ok=bool(content.get("success")), content=content)
 
 
+def _get_cheat_sheet_dir() -> Path:
+    return Path(__file__).resolve().parents[3] / "artifacts" / "cheat_sheets"
+
 def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     topic = str(action_input.get("topic", "general"))
     error_pattern = str(action_input.get("error_pattern", ""))
     solution = str(action_input.get("solution", ""))
     reason = str(action_input.get("reason", ""))
 
-    cheat_sheet_dir = Path(__file__).resolve().parents[4] / "artifacts" / "cheat_sheets"
+    cheat_sheet_dir = _get_cheat_sheet_dir()
     cheat_sheet_dir.mkdir(parents=True, exist_ok=True)
     file_path = cheat_sheet_dir / f"{topic}_hints.md"
 
@@ -134,10 +139,171 @@ def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolE
     return ToolExecutionResult(ok=True, content={"success": True, "message": f"Cheat sheet for '{topic}' updated successfully."})
 
 
-def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+def _answer(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    final_sql = action_input.get("final_sql")
+    file_path = action_input.get("file_path")
+    allow_empty_result = bool(action_input.get("allow_empty_result", False))
     columns = action_input.get("columns")
     rows = action_input.get("rows")
-    # Answer pre-check (do NOT raise): return a structured error so the agent can self-correct.
+
+    question = getattr(task, "question", "") or ""
+    q = question.lower()
+    allows_empty = any(token in q for token in (" no ", " none", " without", " zero", " 0 ", " empty", "没有", "无"))
+
+    if final_sql is not None:
+        import re
+
+        import duckdb
+
+        from data_agent_baseline.tools.duckdb_exec import DUCKDB_EXT_DIR
+
+        final_sql_str = str(final_sql).strip().rstrip(";")
+        try:
+            conn = duckdb.connect(
+                ":memory:",
+                config={
+                    "extension_directory": DUCKDB_EXT_DIR.as_posix(),
+                    "home_directory": task.context_dir.resolve().as_posix(),
+                },
+            )
+            try:
+                conn.execute("LOAD json;")
+            except Exception:
+                pass
+            try:
+                conn.execute("LOAD sqlite;")
+                conn.execute("LOAD excel;")
+            except Exception:
+                pass
+            resolved_context = task.context_dir.resolve().as_posix()
+            conn.execute(f"SET file_search_path = '{resolved_context}'")
+
+            cursor = conn.execute(f"SELECT * FROM ({final_sql_str}) LIMIT 1")
+            first_row = cursor.fetchone()
+
+            if first_row is None and not allows_empty:
+                table_tokens = re.findall(r"(?is)\b(from|join)\s+('(?:[^']|''?)*')", final_sql_str)
+                tables = [t[1] for t in table_tokens][:8]
+
+                literal_pairs: list[tuple[str, str]] = []
+                literal_pairs.extend(
+                    re.findall(r"(?is)\b([a-zA-Z_][\w\.]*?)\s*=\s*'([^']*)'", final_sql_str)
+                )
+                for col, raw_list in re.findall(r"(?is)\b([a-zA-Z_][\w\.]*?)\s+IN\s*\(([^)]*)\)", final_sql_str):
+                    items = [item.strip() for item in raw_list.split(",")]
+                    for item in items:
+                        if len(item) >= 2 and item[0] == "'" and item[-1] == "'":
+                            literal_pairs.append((col, item[1:-1].replace("''", "'")))
+                literal_pairs = literal_pairs[:16]
+
+                if literal_pairs:
+                    missing_literals: list[tuple[str, str]] = []
+                    for col, literal in literal_pairs:
+                        col_name = col.split(".")[-1]
+                        literal_escaped = literal.replace("'", "''")
+                        found = False
+                        for tbl in tables:
+                            try:
+                                probe = conn.execute(
+                                    f"SELECT 1 FROM {tbl} WHERE {col_name} = '{literal_escaped}' LIMIT 1"
+                                ).fetchone()
+                                if probe is not None:
+                                    found = True
+                                    break
+                            except Exception:
+                                continue
+                        if not found and tables:
+                            missing_literals.append((col_name, literal))
+
+                    hint_bits = []
+                    hint_bits.append(
+                        "Your query returned 0 rows. This is often caused by an incorrect categorical literal, wrong column choice, or overly strict filters."
+                    )
+                    if missing_literals:
+                        rendered = ", ".join(f"{c}='{v}'" for c, v in missing_literals[:6])
+                        hint_bits.append(f"Some literals may not exist in the data: {rendered}.")
+                    hint_bits.append(
+                        "Validate categorical values with SELECT DISTINCT or a LIMIT 5 preview before final submission."
+                    )
+                    hint_bits.append(
+                        "Do not claim the result is empty unless the question explicitly allows an empty result."
+                    )
+
+                    return ToolExecutionResult(
+                        ok=False,
+                        content={
+                            "error": {
+                                "type": "SuspiciousEmptyResult",
+                                "message": "final_sql returned 0 rows.",
+                            },
+                            "hint": " ".join(hint_bits),
+                        },
+                        is_terminal=False,
+                    )
+
+            conn.close()
+        except Exception as e:
+            return ToolExecutionResult(
+                ok=False,
+                content={
+                    "error": {
+                        "type": "InvalidSQL",
+                        "message": f"Your final_sql is invalid and failed to execute: {e}",
+                    },
+                    "hint": "Fix your SQL syntax, table/column names, or file paths.",
+                },
+                is_terminal=False,
+            )
+
+        answer = AnswerTable(final_sql=final_sql_str, allow_empty_result=allow_empty_result)
+        return ToolExecutionResult(
+            ok=True,
+            content={"status": "submitted", "final_sql": final_sql_str},
+            is_terminal=True,
+            answer=answer,
+        )
+
+    if file_path is not None:
+        import os
+
+        resolved = str(file_path)
+        actual_path = resolved
+        if not os.path.isabs(resolved):
+            actual_path = str(task.context_dir / resolved)
+        if not os.path.exists(actual_path):
+            return ToolExecutionResult(
+                ok=False,
+                content={
+                    "error": {
+                        "type": "FileNotFound",
+                        "message": f"The file_path you provided does not exist: {resolved}",
+                    },
+                    "hint": "Save your dataframe to a CSV file first (df.to_csv(...)) before submitting file_path.",
+                },
+                is_terminal=False,
+            )
+
+        answer = AnswerTable(file_path=resolved, allow_empty_result=allow_empty_result)
+        return ToolExecutionResult(
+            ok=True,
+            content={"status": "submitted", "file_path": resolved},
+            is_terminal=True,
+            answer=answer,
+        )
+
+    if isinstance(rows, list) and len(rows) == 0 and not allows_empty:
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {
+                    "type": "SuspiciousEmptyResult",
+                    "message": "You are submitting an empty table. This is likely caused by an incorrect categorical literal or an overly strict filter.",
+                },
+                "hint": "Verify categorical values with SELECT DISTINCT or a LIMIT 5 preview. Do not submit an empty table unless the question explicitly allows an empty result.",
+            },
+            is_terminal=False,
+        )
+
     if not isinstance(columns, list) or not columns or not all(isinstance(item, str) for item in columns):
         return ToolExecutionResult(
             ok=False,
@@ -187,7 +353,7 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
             )
         normalized_rows.append(list(row))
 
-    answer = AnswerTable(columns=list(columns), rows=normalized_rows)
+    answer = AnswerTable(columns=list(columns), rows=normalized_rows, allow_empty_result=allow_empty_result)
     return ToolExecutionResult(
         ok=True,
         content={
@@ -223,11 +389,62 @@ class ToolRegistry:
         return self.handlers[action](task, action_input)
 
 
+def _search_knowledge_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input["query"])
+    res = search_knowledge_doc(task, query)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+
+def _list_knowledge_headings(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input.get("query", ""))
+    res = list_knowledge_headings(task, query)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+
+def _read_knowledge_section(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    heading = str(action_input["heading"])
+    res = read_knowledge_section(task, heading)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+def _retrieve_schema_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input["query"])
+    top_k = int(action_input.get("top_k", 10))
+    # We expect schema_catalog.json to be in the task output directory, but since we are executing tools, 
+    # the SSOT catalog is generated during runner initialization and placed there.
+    # Alternatively, the Semantic Validator subagent can generate it in context_dir.
+    # We will assume it is available in context_dir or we dynamically generate it if missing.
+    from data_agent_baseline.tools.schema_catalog import build_schema_catalog
+    import json
+    
+    catalog_path = task.context_dir / "schema_catalog.json"
+    if not catalog_path.exists():
+        # Generate on the fly if it wasn't saved yet
+        catalog = build_schema_catalog(task)
+        with open(catalog_path, 'w', encoding='utf-8') as f:
+            json.dump(catalog, f, ensure_ascii=False)
+            
+    res = retrieve_schema_context(catalog_path, query, top_k)
+    return ToolExecutionResult(ok=True, content=res)
+
+
 def _update_plan(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     return ToolExecutionResult(
         ok=True,
         content="Plan updated successfully. It is now pinned to your context."
     )
+
+def _get_cheat_sheet(topic: str) -> str:
+    """Reads a cheat sheet from the artifacts directory if it exists."""
+    cheat_sheet_path = _get_cheat_sheet_dir() / f"{topic}_hints.md"
+    if cheat_sheet_path.exists():
+        return cheat_sheet_path.read_text(encoding="utf-8")
+    return "No cheat sheet available yet. Use update_cheat_sheet to add one if you find a successful query pattern."
 
 def create_default_tool_registry(
     *, 
@@ -242,8 +459,11 @@ def create_default_tool_registry(
     specs = {
         "answer": ToolSpec(
             name="answer",
-            description="Submit the final answer table. This is the only valid terminating action.",
+            description="Submit the final answer. Use `final_sql` for SQL answers (preferred for large results), or `file_path` for large results produced by Python, or `columns`/`rows` for small outputs. Set `allow_empty_result=true` only if you have strong evidence the correct result should be empty.",
             input_schema={
+                "final_sql": "SELECT ...",
+                "file_path": "result.csv",
+                "allow_empty_result": False,
                 "columns": ["column_name"],
                 "rows": [["value_1"]],
             },
@@ -304,6 +524,29 @@ def create_default_tool_registry(
             description="Read a preview of a JSON file inside context.",
             input_schema={"path": "relative/path/to/file.json", "max_chars": 4000},
         ),
+        "list_knowledge_headings": ToolSpec(
+            name="list_knowledge_headings",
+            description="List available headings from the knowledge documents.",
+            input_schema={"query": "Optional query string to filter headings"},
+        ),
+        "read_knowledge_section": ToolSpec(
+            name="read_knowledge_section",
+            description="Read a specific section from the knowledge documents by its heading.",
+            input_schema={"heading": "The exact heading string"},
+        ),
+        "search_knowledge_doc": ToolSpec(
+            name="search_knowledge_doc",
+            description="Search knowledge documents using Hybrid RAG to find relevant information.",
+            input_schema={"query": "The search query string"},
+        ),
+        "retrieve_schema_context": ToolSpec(
+            name="retrieve_schema_context",
+            description="Use Hybrid RAG (BM25 + Qwen2 Embedding) to search the database Schema Catalog. This retrieves the Top-K most relevant tables, columns, data types, and sampled values for your natural language query. ALWAYS use this to map business terms to actual database fields.",
+            input_schema={
+                "query": "The natural language query describing what fields or entities you are looking for",
+                "top_k": 10
+            }
+        ),
     "update_cheat_sheet": ToolSpec(
             name="update_cheat_sheet",
             description="Record a successful solution to a previously encountered error. Use this to help yourself in future tasks.",
@@ -336,6 +579,10 @@ def create_default_tool_registry(
         "read_csv": _read_csv,
         "read_doc": _read_doc,
         "read_json": _read_json,
+        "list_knowledge_headings": _list_knowledge_headings,
+        "read_knowledge_section": _read_knowledge_section,
+        "search_knowledge_doc": _search_knowledge_doc,
+        "retrieve_schema_context": _retrieve_schema_context,
         "update_plan": _update_plan,
     }
 
@@ -362,8 +609,8 @@ def create_default_tool_registry(
                 model=model,
                 tools=sub_tools,
                 config=LangGraphReActAgentConfig(
-                    max_steps=getattr(config.agent, "max_steps", 16) // 2, # Give subagent less steps
-                    history_max_steps=getattr(config.agent, "history_max_steps", 8),
+                    max_steps=getattr(config.agent, "max_steps", 64) // 2, # Give subagent less steps
+                    history_max_steps=getattr(config.agent, "history_max_steps", 16),
                     max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24000),
                     compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
                 ),
