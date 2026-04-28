@@ -13,8 +13,8 @@ from data_agent_baseline.tools.registry import ToolRegistry
 
 @dataclass(frozen=True, slots=True)
 class LangGraphPlanAndExecuteConfig:
-    max_steps: int = 16
-    history_max_steps: int = 8
+    max_steps: int = 64
+    history_max_steps: int = 16
     max_prompt_chars: int = 24_000
     compress_trigger_steps: int = 12
 

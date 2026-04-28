@@ -28,8 +28,8 @@ from data_agent_baseline.tools.registry import ToolRegistry
 
 @dataclass(frozen=True, slots=True)
 class LangGraphReActAgentConfig:
-    max_steps: int = 16
-    history_max_steps: int = 8  # default prompt window
+    max_steps: int = 64
+    history_max_steps: int = 16  # default prompt window
     observation_max_string_chars: int = 4000
     observation_max_list_items: int = 50
     parse_repair_max_retries: int = 1

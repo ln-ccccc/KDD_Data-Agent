@@ -15,7 +15,8 @@ def build_schema_catalog(task: PublicTask) -> dict[str, Any]:
     并采样 DISTINCT 值，最终生成全局唯一的 SchemaCatalog (SSOT)。
     """
     catalog: dict[str, Any] = {
-        "task_id": task.id,
+        "task_id": task.task_id,
+        "question": task.question,
         "context_dir": str(task.context_dir),
         "tables": []
     }
