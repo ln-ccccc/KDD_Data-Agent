@@ -1,0 +1,14 @@
+{
+  "task_id": "task_200",
+  "question": "Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine.",
+  "context_dir": "/workspace/data/public/input/task_200/context",
+  "tables": [
+    {
+      "source_file": "db/bond.db",
+      "source_type": "sqlite",
+      "table_name": "bond",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

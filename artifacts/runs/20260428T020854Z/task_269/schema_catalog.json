@@ -1,0 +1,14 @@
+{
+  "task_id": "task_269",
+  "question": "What are the names of the superheroes with the power of death touch?",
+  "context_dir": "/workspace/data/public/input/task_269/context",
+  "tables": [
+    {
+      "source_file": "db/superhero.db",
+      "source_type": "sqlite",
+      "table_name": "superhero",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

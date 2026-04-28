@@ -1,0 +1,6 @@
+{
+  "task_id": "task_418",
+  "question": "Among the patients whose creatinine level is abnormal, how many of them aren't 70 yet?",
+  "context_dir": "/workspace/data/public/input/task_418/context",
+  "tables": []
+}

@@ -1,0 +1,14 @@
+{
+  "task_id": "task_283",
+  "question": "Calculate the percentage of superheroes with blue eyes.",
+  "context_dir": "/workspace/data/public/input/task_283/context",
+  "tables": [
+    {
+      "source_file": "db/superhero.db",
+      "source_type": "sqlite",
+      "table_name": "superhero",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

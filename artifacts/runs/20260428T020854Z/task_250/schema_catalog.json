@@ -1,0 +1,14 @@
+{
+  "task_id": "task_250",
+  "question": "Which post by slashnick has the most answers count? State the post ID.",
+  "context_dir": "/workspace/data/public/input/task_250/context",
+  "tables": [
+    {
+      "source_file": "db/users.db",
+      "source_type": "sqlite",
+      "table_name": "users",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

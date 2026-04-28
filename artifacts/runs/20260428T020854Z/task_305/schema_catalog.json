@@ -1,0 +1,14 @@
+{
+  "task_id": "task_305",
+  "question": "What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?",
+  "context_dir": "/workspace/data/public/input/task_305/context",
+  "tables": [
+    {
+      "source_file": "db/races.db",
+      "source_type": "sqlite",
+      "table_name": "races",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

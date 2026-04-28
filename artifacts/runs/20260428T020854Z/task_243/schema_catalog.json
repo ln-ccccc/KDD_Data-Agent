@@ -1,0 +1,14 @@
+{
+  "task_id": "task_243",
+  "question": "For the user No.24, how many times is the number of his/her posts compared to his/her votes?",
+  "context_dir": "/workspace/data/public/input/task_243/context",
+  "tables": [
+    {
+      "source_file": "db/posts.db",
+      "source_type": "sqlite",
+      "table_name": "posts",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

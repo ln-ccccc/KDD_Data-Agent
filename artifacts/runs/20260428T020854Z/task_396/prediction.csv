@@ -1,0 +1,2 @@
+Error
+"Unable to complete the task due to persistent 'Catalog Error: unrecognized configuration parameter ""autoupdate""' when attempting to query data with `execute_duckdb_sql`. The superhero data with height and publisher information could not be accessed."

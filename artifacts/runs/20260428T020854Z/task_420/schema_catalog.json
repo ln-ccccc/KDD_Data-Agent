@@ -1,0 +1,14 @@
+{
+  "task_id": "task_420",
+  "question": "What percentage of cards with format commander and legal status do not have a content warning?",
+  "context_dir": "/workspace/data/public/input/task_420/context",
+  "tables": [
+    {
+      "source_file": "db/cards.db",
+      "source_type": "sqlite",
+      "table_name": "cards",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}
