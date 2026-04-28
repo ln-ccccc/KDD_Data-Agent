@@ -303,14 +303,16 @@ class LangGraphReActAgent:
         reflection_hint = ""
         
         # 1. Hard Errors (Exception or Tool failed)
-        if not last_step.ok and isinstance(last_step.observation, dict):            error_info = last_step.observation.get("error")
+        if not last_step.ok and isinstance(last_step.observation, dict):
+            error_info = last_step.observation.get("error")
             content = last_step.observation.get("content", {})
             if isinstance(content, dict) and not error_info:
                 if "error" in content:
                     error_info = content.get("error")
 
             if error_info:
-                needs_reflection = True                error_type = error_info.get("type", "UnknownError") if isinstance(error_info, dict) else "Error"
+                needs_reflection = True
+                error_type = error_info.get("type", "UnknownError") if isinstance(error_info, dict) else "Error"
                 error_msg = error_info.get("message", str(error_info)) if isinstance(error_info, dict) else str(error_info)
                 reflection_hint = (
                     f"REFLECTION: The tool '{last_step.action}' failed with {error_type}. "
