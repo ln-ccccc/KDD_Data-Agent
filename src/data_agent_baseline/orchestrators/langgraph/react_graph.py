@@ -354,9 +354,21 @@ class LangGraphReActAgent:
         task = gs["task"]
         from data_agent_baseline.agents.prompt import ANSWER_REVIEW_SYSTEM_PROMPT, build_answer_review_prompt
         
+        # Basic SHAPE GUARD check before calling LLM
+        columns = pending_answer.get("columns", [])
+        rows = pending_answer.get("rows", [])
+        
+        # Guard 1: If there are more than 50 rows but the user didn't ask for "all" or a large list, it might be a missing LIMIT
+        # But for safety, we just log a warning to the reviewer.
+        
+        # Guard 2: If there are 10 or more columns, it's very likely a SELECT * mistake.
+        shape_warning = ""
+        if len(columns) >= 7:
+            shape_warning = f"SHAPE WARNING: The proposed answer contains {len(columns)} columns. This looks like a 'SELECT *' or raw table dump. Did the question explicitly ask for ALL these columns? If not, REJECT it and ask the agent to select only the necessary columns."
+
         msgs = [
             ModelMessage(role="system", content=ANSWER_REVIEW_SYSTEM_PROMPT),
-            ModelMessage(role="user", content=build_answer_review_prompt(task.question, pending_answer))
+            ModelMessage(role="user", content=build_answer_review_prompt(task.question, pending_answer) + f"\n\n{shape_warning}")
         ]
         
         try:
