@@ -2,7 +2,7 @@ dataset:
   root_path: data/public/input
 
 agent:
-  model: gpt-4o
+  model: gemini-2.5-flash
   api_base: https://ai-gateway-internal.dp.tech
   api_key: sk-RPJpeWvTc8dZYs-g29egqg
   max_steps: 64
