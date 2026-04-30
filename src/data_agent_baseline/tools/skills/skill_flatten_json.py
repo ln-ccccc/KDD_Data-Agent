@@ -3,7 +3,7 @@ from typing import Any
 from pathlib import Path
 
 from data_agent_baseline.benchmark.schema import PublicTask
-from data_agent_baseline.tools.registry import ToolExecutionResult, ToolSpec
+from data_agent_baseline.tools.types import ToolExecutionResult, ToolSpec
 from data_agent_baseline.tools.filesystem import resolve_context_path
 
 TOOL_SPEC = ToolSpec(

@@ -4,7 +4,8 @@ import inspect
 import sys
 from pathlib import Path
 from typing import Any
-from data_agent_baseline.tools.registry import ToolRegistry, ToolSpec, ToolExecutionResult
+from data_agent_baseline.tools.registry import ToolRegistry
+from data_agent_baseline.tools.types import ToolExecutionResult, ToolSpec
 from data_agent_baseline.benchmark.schema import PublicTask
 
 def _create_markdown_skill_handler(content: str) -> Any:

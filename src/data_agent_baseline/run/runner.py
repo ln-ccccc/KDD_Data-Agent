@@ -306,34 +306,14 @@ def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str
         final_sql = answer.get("final_sql")
         file_path = answer.get("file_path")
         if isinstance(final_sql, str) and final_sql.strip():
-            import duckdb
-
-            from data_agent_baseline.tools.duckdb_exec import DUCKDB_EXT_DIR
-
             try:
-                conn = duckdb.connect(
-                    ":memory:",
-                    config={
-                        "extension_directory": DUCKDB_EXT_DIR.as_posix(),
-                        "home_directory": task.context_dir.resolve().as_posix() if task else None,
-                    },
+                from data_agent_baseline.tools.duckdb_runtime import export_query_to_csv
+
+                export_query_to_csv(
+                    context_dir=task.context_dir if task is not None else run_output_dir,
+                    sql=final_sql,
+                    output_csv_path=prediction_csv_path,
                 )
-                try:
-                    conn.execute("LOAD json;")
-                except Exception:
-                    pass
-                try:
-                    conn.execute("LOAD sqlite;")
-                    conn.execute("LOAD excel;")
-                except Exception:
-                    pass
-                if task is not None:
-                    resolved_context = task.context_dir.resolve().as_posix()
-                    conn.execute(f"SET file_search_path = '{resolved_context}'")
-                out_path = prediction_csv_path.resolve().as_posix()
-                sql = final_sql.strip().rstrip(";")
-                conn.execute(f"COPY ({sql}) TO '{out_path}' (HEADER, DELIMITER ',');")
-                conn.close()
             except Exception:
                 import traceback
 

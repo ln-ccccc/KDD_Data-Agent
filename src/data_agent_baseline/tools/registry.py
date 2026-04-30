@@ -4,9 +4,10 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
-from data_agent_baseline.benchmark.schema import AnswerTable, PublicTask
+from data_agent_baseline.benchmark.schema import PublicTask
+from data_agent_baseline.tools.answer import handle_answer
 from data_agent_baseline.tools.filesystem import (
     list_context_tree,
     read_csv_preview,
@@ -22,28 +23,9 @@ from data_agent_baseline.tools.eda import extract_dataframe_stats
 from data_agent_baseline.tools.knowledge_retriever import search_knowledge_doc, list_knowledge_headings, read_knowledge_section
 from data_agent_baseline.tools.schema_retriever import retrieve_schema_context
 from data_agent_baseline.tools.subagent import build_subagent_tool, subagent_finish
+from data_agent_baseline.tools.types import ToolExecutionResult, ToolHandler, ToolSpec
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
-
-# Tool schema definition
-@dataclass(frozen=True, slots=True)
-class ToolSpec:
-    name: str
-    description: str
-    input_schema: dict[str, Any]
-
-# Tool execution result definition（observation）
-# Tool execution result definition（observation）
-@dataclass(frozen=True, slots=True)
-class ToolExecutionResult:
-    ok: bool
-    content: dict[str, Any]
-    is_terminal: bool = False
-    answer: AnswerTable | None = None
-
-# 作用是定义工具的执行函数，接收任务、输入和输出的类型。
-# 作用是定义工具的执行函数，接收任务、输入和输出的类型。
-ToolHandler = Callable[[PublicTask, dict[str, Any]], ToolExecutionResult]
 
 # 文本工具：列出上下文目录树，用于获取任务上下文的目录结构
 def _list_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -140,230 +122,7 @@ def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolE
 
 
 def _answer(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
-    final_sql = action_input.get("final_sql")
-    file_path = action_input.get("file_path")
-    allow_empty_result = bool(action_input.get("allow_empty_result", False))
-    columns = action_input.get("columns")
-    rows = action_input.get("rows")
-
-    question = getattr(task, "question", "") or ""
-    q = question.lower()
-    allows_empty = any(token in q for token in (" no ", " none", " without", " zero", " 0 ", " empty", "没有", "无"))
-
-    if final_sql is not None:
-        import re
-
-        import duckdb
-
-        from data_agent_baseline.tools.duckdb_exec import DUCKDB_EXT_DIR
-
-        final_sql_str = str(final_sql).strip().rstrip(";")
-        try:
-            conn = duckdb.connect(
-                ":memory:",
-                config={
-                    "extension_directory": DUCKDB_EXT_DIR.as_posix(),
-                    "home_directory": task.context_dir.resolve().as_posix(),
-                },
-            )
-            try:
-                conn.execute("LOAD json;")
-            except Exception:
-                pass
-            try:
-                conn.execute("LOAD sqlite;")
-                conn.execute("LOAD excel;")
-            except Exception:
-                pass
-            resolved_context = task.context_dir.resolve().as_posix()
-            conn.execute(f"SET file_search_path = '{resolved_context}'")
-
-            cursor = conn.execute(f"SELECT * FROM ({final_sql_str}) LIMIT 1")
-            first_row = cursor.fetchone()
-
-            if first_row is None and not allows_empty:
-                table_tokens = re.findall(r"(?is)\b(from|join)\s+('(?:[^']|''?)*')", final_sql_str)
-                tables = [t[1] for t in table_tokens][:8]
-
-                literal_pairs: list[tuple[str, str]] = []
-                literal_pairs.extend(
-                    re.findall(r"(?is)\b([a-zA-Z_][\w\.]*?)\s*=\s*'([^']*)'", final_sql_str)
-                )
-                for col, raw_list in re.findall(r"(?is)\b([a-zA-Z_][\w\.]*?)\s+IN\s*\(([^)]*)\)", final_sql_str):
-                    items = [item.strip() for item in raw_list.split(",")]
-                    for item in items:
-                        if len(item) >= 2 and item[0] == "'" and item[-1] == "'":
-                            literal_pairs.append((col, item[1:-1].replace("''", "'")))
-                literal_pairs = literal_pairs[:16]
-
-                if literal_pairs:
-                    missing_literals: list[tuple[str, str]] = []
-                    for col, literal in literal_pairs:
-                        col_name = col.split(".")[-1]
-                        literal_escaped = literal.replace("'", "''")
-                        found = False
-                        for tbl in tables:
-                            try:
-                                probe = conn.execute(
-                                    f"SELECT 1 FROM {tbl} WHERE {col_name} = '{literal_escaped}' LIMIT 1"
-                                ).fetchone()
-                                if probe is not None:
-                                    found = True
-                                    break
-                            except Exception:
-                                continue
-                        if not found and tables:
-                            missing_literals.append((col_name, literal))
-
-                    hint_bits = []
-                    hint_bits.append(
-                        "Your query returned 0 rows. This is often caused by an incorrect categorical literal, wrong column choice, or overly strict filters."
-                    )
-                    if missing_literals:
-                        rendered = ", ".join(f"{c}='{v}'" for c, v in missing_literals[:6])
-                        hint_bits.append(f"Some literals may not exist in the data: {rendered}.")
-                    hint_bits.append(
-                        "Validate categorical values with SELECT DISTINCT or a LIMIT 5 preview before final submission."
-                    )
-                    hint_bits.append(
-                        "Do not claim the result is empty unless the question explicitly allows an empty result."
-                    )
-
-                    return ToolExecutionResult(
-                        ok=False,
-                        content={
-                            "error": {
-                                "type": "SuspiciousEmptyResult",
-                                "message": "final_sql returned 0 rows.",
-                            },
-                            "hint": " ".join(hint_bits),
-                        },
-                        is_terminal=False,
-                    )
-
-            conn.close()
-        except Exception as e:
-            return ToolExecutionResult(
-                ok=False,
-                content={
-                    "error": {
-                        "type": "InvalidSQL",
-                        "message": f"Your final_sql is invalid and failed to execute: {e}",
-                    },
-                    "hint": "Fix your SQL syntax, table/column names, or file paths.",
-                },
-                is_terminal=False,
-            )
-
-        answer = AnswerTable(final_sql=final_sql_str, allow_empty_result=allow_empty_result)
-        return ToolExecutionResult(
-            ok=True,
-            content={"status": "submitted", "final_sql": final_sql_str},
-            is_terminal=True,
-            answer=answer,
-        )
-
-    if file_path is not None:
-        import os
-
-        resolved = str(file_path)
-        actual_path = resolved
-        if not os.path.isabs(resolved):
-            actual_path = str(task.context_dir / resolved)
-        if not os.path.exists(actual_path):
-            return ToolExecutionResult(
-                ok=False,
-                content={
-                    "error": {
-                        "type": "FileNotFound",
-                        "message": f"The file_path you provided does not exist: {resolved}",
-                    },
-                    "hint": "Save your dataframe to a CSV file first (df.to_csv(...)) before submitting file_path.",
-                },
-                is_terminal=False,
-            )
-
-        answer = AnswerTable(file_path=resolved, allow_empty_result=allow_empty_result)
-        return ToolExecutionResult(
-            ok=True,
-            content={"status": "submitted", "file_path": resolved},
-            is_terminal=True,
-            answer=answer,
-        )
-
-    if isinstance(rows, list) and len(rows) == 0 and not allows_empty:
-        return ToolExecutionResult(
-            ok=False,
-            content={
-                "error": {
-                    "type": "SuspiciousEmptyResult",
-                    "message": "You are submitting an empty table. This is likely caused by an incorrect categorical literal or an overly strict filter.",
-                },
-                "hint": "Verify categorical values with SELECT DISTINCT or a LIMIT 5 preview. Do not submit an empty table unless the question explicitly allows an empty result.",
-            },
-            is_terminal=False,
-        )
-
-    if not isinstance(columns, list) or not columns or not all(isinstance(item, str) for item in columns):
-        return ToolExecutionResult(
-            ok=False,
-            content={
-                "error": {
-                    "type": "InvalidAnswer",
-                    "message": "answer.columns must be a non-empty list of strings.",
-                },
-                "hint": "Example: {\"columns\": [\"col1\"], \"rows\": [[\"value1\"]]}",
-            },
-            is_terminal=False,
-        )
-    if not isinstance(rows, list):
-        return ToolExecutionResult(
-            ok=False,
-            content={
-                "error": {"type": "InvalidAnswer", "message": "answer.rows must be a list."},
-                "hint": "rows must be a list of rows; each row must be a list with same length as columns.",
-            },
-            is_terminal=False,
-        )
-
-    normalized_rows: list[list[Any]] = []
-    for row in rows:
-        if not isinstance(row, list):
-            return ToolExecutionResult(
-                ok=False,
-                content={
-                    "error": {"type": "InvalidAnswer", "message": "Each answer row must be a list."},
-                    "hint": "rows should look like: [[val1, val2], [val1, val2]]",
-                },
-                is_terminal=False,
-            )
-        if len(row) != len(columns):
-            return ToolExecutionResult(
-                ok=False,
-                content={
-                    "error": {
-                        "type": "InvalidAnswer",
-                        "message": "Each answer row must match the number of columns.",
-                        "expected_columns": len(columns),
-                        "got_columns": len(row),
-                    },
-                    "hint": "Ensure every row length equals len(columns).",
-                },
-                is_terminal=False,
-            )
-        normalized_rows.append(list(row))
-
-    answer = AnswerTable(columns=list(columns), rows=normalized_rows, allow_empty_result=allow_empty_result)
-    return ToolExecutionResult(
-        ok=True,
-        content={
-            "status": "submitted",
-            "column_count": len(columns),
-            "row_count": len(normalized_rows),
-        },
-        is_terminal=True,
-        answer=answer,
-    )
+    return handle_answer(task, action_input)
 
 
 @dataclass(slots=True)

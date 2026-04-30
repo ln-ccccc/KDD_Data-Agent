@@ -3,8 +3,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from data_agent_baseline.benchmark.schema import PublicTask
-from data_agent_baseline.agents.prompt import SUBAGENT_SYSTEM_PROMPT
+from data_agent_baseline.benchmark.schema import AnswerTable, PublicTask, TaskRecord
+from data_agent_baseline.tools.types import ToolExecutionResult
 
 
 def build_subagent_tool(
@@ -14,7 +14,6 @@ def build_subagent_tool(
     Creates a closure that acts as a tool handler for delegating tasks to a subagent.
     `create_agent_func` should return an instance of LangGraphReActAgent configured for the subagent.
     """
-    from data_agent_baseline.tools.registry import ToolExecutionResult
 
     def delegate_to_data_analyst(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
         sub_task_description = action_input.get("sub_task_description")
@@ -28,13 +27,12 @@ def build_subagent_tool(
 
         # Create a proxy task for the subagent
         sub_task = PublicTask(
-            id=f"{task.id}_subtask",
-            question=f"SUB-TASK DESCRIPTION:\n{sub_task_description}\n\nFOCUS FILES:\n{json.dumps(focus_files)}",
-            # We don't have answer details for the subtask, it just needs to explore
-            answer_columns=[],
-            answer_rows=[],
-            tables=[],
-            context_dir=task.context_dir,
+            record=TaskRecord(
+                task_id=f"{task.task_id}__subtask",
+                difficulty=task.difficulty,
+                question=f"SUB-TASK DESCRIPTION:\n{sub_task_description}\n\nFOCUS FILES:\n{json.dumps(focus_files)}",
+            ),
+            assets=task.assets,
         )
 
         try:
@@ -104,7 +102,6 @@ def subagent_finish(task: PublicTask, action_input: dict[str, Any]) -> Any:
     Tool called by the subagent to report its findings back to the primary agent.
     It marks the subagent's execution as terminal.
     """
-    from data_agent_baseline.tools.registry import ToolExecutionResult
     summary = action_input.get("summary", "")
     data_references = action_input.get("data_references", [])
     raw_findings = action_input.get("raw_findings", {})
@@ -115,9 +112,6 @@ def subagent_finish(task: PublicTask, action_input: dict[str, Any]) -> Any:
             content={"error": "You must provide a 'summary' of your findings."}
         )
 
-    # We return a dummy AnswerTable to satisfy the typing, but the delegate handler will extract the action_input
-    from data_agent_baseline.benchmark.schema import AnswerTable
-    
     return ToolExecutionResult(
         ok=True,
         content="Subagent task completed. Findings recorded.",
