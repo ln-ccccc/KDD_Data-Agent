@@ -1,2 +1,0 @@
-Error
-"The necessary budget amount data for events is not available in the provided context files. `csv/event.csv` contains event details, and `doc/budget.md` describes budget categories, but neither contains the actual numerical budget amounts required to perform the comparison."
