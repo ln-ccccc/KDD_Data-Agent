@@ -27,6 +27,9 @@ RUN uv sync --frozen --no-install-project
 # 拷贝全部代码与配置
 COPY . .
 
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
 # 完整安装项目
 RUN uv sync --frozen
 
@@ -39,5 +42,5 @@ conn.execute(\"SET extension_directory='/app/.duckdb_extensions'\"); \
 conn.execute(\"INSTALL json; INSTALL sqlite; INSTALL excel;\"); \
 "
 
-# 默认运行命令（可通过 docker-compose 或 run 参数覆盖）
-ENTRYPOINT ["uv", "run", "dabench"]
+# Default startup: run evaluation loop (no args). For local debugging, pass args to run dabench subcommands.
+ENTRYPOINT ["/app/entrypoint.sh"]

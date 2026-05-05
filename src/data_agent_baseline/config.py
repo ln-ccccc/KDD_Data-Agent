@@ -91,11 +91,20 @@ def load_app_config(config_path: Path) -> AppConfig:
     dataset_config = DatasetConfig(
         root_path=_path_value(dataset_payload.get("root_path"), dataset_defaults.root_path),
     )
-    api_base_val = os.environ.get("DATA_AGENT_API_BASE") or agent_payload.get("api_base", agent_defaults.api_base)
-    api_key_val = os.environ.get("DATA_AGENT_API_KEY") or agent_payload.get("api_key", agent_defaults.api_key)
+    api_base_val = (
+        os.environ.get("DATA_AGENT_API_BASE")
+        or os.environ.get("MODEL_API_URL")
+        or agent_payload.get("api_base", agent_defaults.api_base)
+    )
+    api_key_val = (
+        os.environ.get("DATA_AGENT_API_KEY")
+        or os.environ.get("MODEL_API_KEY")
+        or agent_payload.get("api_key", agent_defaults.api_key)
+    )
+    model_val = os.environ.get("MODEL_NAME") or agent_payload.get("model", agent_defaults.model)
 
     agent_config = AgentConfig(
-        model=str(agent_payload.get("model", agent_defaults.model)),
+        model=str(model_val),
         api_base=str(api_base_val),
         api_key=str(api_key_val),
         max_steps=int(agent_payload.get("max_steps", agent_defaults.max_steps)),
