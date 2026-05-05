@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from data_agent_baseline.benchmark.schema import PublicTask
-from data_agent_baseline.agents.prompt import SUBAGENT_SYSTEM_PROMPT
 
 
 def build_subagent_tool(

@@ -1,0 +1,6 @@
+.hf/
+artifacts/
+data/
+tmp_dataset/
+__pycache__/
+*.pyc

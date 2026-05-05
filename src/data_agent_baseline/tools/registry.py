@@ -19,6 +19,8 @@ from data_agent_baseline.tools.python_exec import execute_python_code
 from data_agent_baseline.tools.sqlite import execute_read_only_sql, inspect_sqlite_schema
 from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
 from data_agent_baseline.tools.eda import extract_dataframe_stats
+from data_agent_baseline.tools.knowledge_retriever import search_knowledge_doc, list_knowledge_headings, read_knowledge_section
+from data_agent_baseline.tools.schema_retriever import retrieve_schema_context
 from data_agent_baseline.tools.subagent import build_subagent_tool, subagent_finish
 
 EXECUTE_PYTHON_TIMEOUT_SECONDS = 100
@@ -113,13 +115,16 @@ def _execute_python(task: PublicTask, action_input: dict[str, Any]) -> ToolExecu
     return ToolExecutionResult(ok=bool(content.get("success")), content=content)
 
 
+def _get_cheat_sheet_dir() -> Path:
+    return Path(__file__).resolve().parents[3] / "artifacts" / "cheat_sheets"
+
 def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     topic = str(action_input.get("topic", "general"))
     error_pattern = str(action_input.get("error_pattern", ""))
     solution = str(action_input.get("solution", ""))
     reason = str(action_input.get("reason", ""))
 
-    cheat_sheet_dir = Path(__file__).resolve().parents[4] / "artifacts" / "cheat_sheets"
+    cheat_sheet_dir = _get_cheat_sheet_dir()
     cheat_sheet_dir.mkdir(parents=True, exist_ok=True)
     file_path = cheat_sheet_dir / f"{topic}_hints.md"
 
@@ -223,11 +228,62 @@ class ToolRegistry:
         return self.handlers[action](task, action_input)
 
 
+def _search_knowledge_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input["query"])
+    res = search_knowledge_doc(task, query)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+
+def _list_knowledge_headings(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input.get("query", ""))
+    res = list_knowledge_headings(task, query)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+
+def _read_knowledge_section(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    heading = str(action_input["heading"])
+    res = read_knowledge_section(task, heading)
+    if not isinstance(res, dict):
+        res = {"result": res}
+    return ToolExecutionResult(ok=True, content=res)
+
+def _retrieve_schema_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+    query = str(action_input["query"])
+    top_k = int(action_input.get("top_k", 10))
+    # We expect schema_catalog.json to be in the task output directory, but since we are executing tools, 
+    # the SSOT catalog is generated during runner initialization and placed there.
+    # Alternatively, the Semantic Validator subagent can generate it in context_dir.
+    # We will assume it is available in context_dir or we dynamically generate it if missing.
+    from data_agent_baseline.tools.schema_catalog import build_schema_catalog
+    import json
+    
+    catalog_path = task.context_dir / "schema_catalog.json"
+    if not catalog_path.exists():
+        # Generate on the fly if it wasn't saved yet
+        catalog = build_schema_catalog(task)
+        with open(catalog_path, 'w', encoding='utf-8') as f:
+            json.dump(catalog, f, ensure_ascii=False)
+            
+    res = retrieve_schema_context(catalog_path, query, top_k)
+    return ToolExecutionResult(ok=True, content=res)
+
+
 def _update_plan(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     return ToolExecutionResult(
         ok=True,
         content="Plan updated successfully. It is now pinned to your context."
     )
+
+def _get_cheat_sheet(topic: str) -> str:
+    """Reads a cheat sheet from the artifacts directory if it exists."""
+    cheat_sheet_path = _get_cheat_sheet_dir() / f"{topic}_hints.md"
+    if cheat_sheet_path.exists():
+        return cheat_sheet_path.read_text(encoding="utf-8")
+    return "No cheat sheet available yet. Use update_cheat_sheet to add one if you find a successful query pattern."
 
 def create_default_tool_registry(
     *, 
@@ -304,6 +360,29 @@ def create_default_tool_registry(
             description="Read a preview of a JSON file inside context.",
             input_schema={"path": "relative/path/to/file.json", "max_chars": 4000},
         ),
+        "list_knowledge_headings": ToolSpec(
+            name="list_knowledge_headings",
+            description="List available headings from the knowledge documents.",
+            input_schema={"query": "Optional query string to filter headings"},
+        ),
+        "read_knowledge_section": ToolSpec(
+            name="read_knowledge_section",
+            description="Read a specific section from the knowledge documents by its heading.",
+            input_schema={"heading": "The exact heading string"},
+        ),
+        "search_knowledge_doc": ToolSpec(
+            name="search_knowledge_doc",
+            description="Search knowledge documents using Hybrid RAG to find relevant information.",
+            input_schema={"query": "The search query string"},
+        ),
+        "retrieve_schema_context": ToolSpec(
+            name="retrieve_schema_context",
+            description="Use Hybrid RAG (BM25 + Qwen2 Embedding) to search the database Schema Catalog. This retrieves the Top-K most relevant tables, columns, data types, and sampled values for your natural language query. ALWAYS use this to map business terms to actual database fields.",
+            input_schema={
+                "query": "The natural language query describing what fields or entities you are looking for",
+                "top_k": 10
+            }
+        ),
     "update_cheat_sheet": ToolSpec(
             name="update_cheat_sheet",
             description="Record a successful solution to a previously encountered error. Use this to help yourself in future tasks.",
@@ -336,6 +415,10 @@ def create_default_tool_registry(
         "read_csv": _read_csv,
         "read_doc": _read_doc,
         "read_json": _read_json,
+        "list_knowledge_headings": _list_knowledge_headings,
+        "read_knowledge_section": _read_knowledge_section,
+        "search_knowledge_doc": _search_knowledge_doc,
+        "retrieve_schema_context": _retrieve_schema_context,
         "update_plan": _update_plan,
     }
 
@@ -362,8 +445,8 @@ def create_default_tool_registry(
                 model=model,
                 tools=sub_tools,
                 config=LangGraphReActAgentConfig(
-                    max_steps=getattr(config.agent, "max_steps", 16) // 2, # Give subagent less steps
-                    history_max_steps=getattr(config.agent, "history_max_steps", 8),
+                    max_steps=getattr(config.agent, "max_steps", 64) // 2, # Give subagent less steps
+                    history_max_steps=getattr(config.agent, "history_max_steps", 16),
                     max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24000),
                     compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
                 ),

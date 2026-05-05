@@ -18,7 +18,9 @@ from data_agent_baseline.tools.registry import ToolRegistry
 
 @dataclass(frozen=True, slots=True)
 class ReActAgentConfig:
-    max_steps: int = 16
+    max_steps: int = 64
+    max_prompt_chars: int = 24_000
+    compress_trigger_steps: int = 12
 
 def _strip_json_fence(raw_response: str) -> str:
     text = raw_response.strip()

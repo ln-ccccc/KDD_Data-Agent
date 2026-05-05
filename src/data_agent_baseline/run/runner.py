@@ -26,6 +26,7 @@ from data_agent_baseline.benchmark.dataset import DABenchPublicDataset
 from data_agent_baseline.config import AppConfig
 from data_agent_baseline.runtime.trace import prune_trace_payload, write_json
 from data_agent_baseline.tools.registry import ToolRegistry, create_default_tool_registry
+from data_agent_baseline.tools.schema_catalog import save_schema_catalog
 
 
 @dataclass(frozen=True, slots=True)
@@ -279,7 +280,7 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
     return _failure_run_result_payload(task_id, "Task exited without returning a result.")
 
 
-def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str, Any]) -> TaskRunArtifacts:
+def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str, Any], task: Any = None) -> TaskRunArtifacts:
     """
     写入任务运行输出，包括trace.json和prediction.csv。
     """
@@ -289,6 +290,14 @@ def _write_task_outputs(task_id: str, run_output_dir: Path, run_result: dict[str
     trace_level = str(run_result.get("trace_level", "standard") or "standard").strip().lower()
     trace_payload = prune_trace_payload(dict(run_result), trace_level=trace_level)
     _write_json(trace_path, trace_payload)
+
+    # 1. 提取 SchemaCatalog 并存为 JSON，用作后续分析或二次索引
+    if task:
+        try:
+            save_schema_catalog(task, task_output_dir)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
 
     prediction_csv_path: Path | None = None
     answer = run_result.get("answer")
@@ -328,7 +337,12 @@ def run_single_task(
         run_result = _run_single_task_core(task_id=task_id, config=config, model=model, tools=tools)
     run_result["e2e_elapsed_seconds"] = round(perf_counter() - started_at, 3)
     run_result["trace_level"] = getattr(config.run, "trace_level", "standard")
-    return _write_task_outputs(task_id, run_output_dir, run_result)
+    
+    # fetch task
+    public_dataset = DABenchPublicDataset(config.dataset.root_path)
+    task = public_dataset.get_task(task_id)
+    
+    return _write_task_outputs(task_id, run_output_dir, run_result, task=task)
 
 
 def run_benchmark(

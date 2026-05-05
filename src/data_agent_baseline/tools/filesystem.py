@@ -98,22 +98,77 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
     """
     Get the schema (columns and types) of a data file using DuckDB.
     Supports CSV, JSON, Parquet, and Excel.
+    Also provides a sample of distinct values for categorical/string columns to prevent hallucination.
     """
     from data_agent_baseline.tools.duckdb_exec import execute_duckdb_sql
-    
+
     path = resolve_context_path(task, relative_path)
     ext = path.suffix.lower()
-    
+
     if ext in [".csv", ".parquet", ".json", ".xlsx", ".xls"]:
         # Use DuckDB DESCRIBE to get a clean schema
-        sql = f"DESCRIBE SELECT * FROM '{relative_path}'"
+        # For JSON, we might need read_json_auto if it's an array of records
+        
+        # Determine base query based on file type to handle nested JSON like {"records": [...]}
+        if ext == ".json":
+            base_query = f"SELECT * FROM (SELECT unnest(records) as r FROM read_json_auto('{relative_path}'))"
+            # Try to see if it's nested
+            test_res = execute_duckdb_sql(task.context_dir, f"SELECT records FROM read_json_auto('{relative_path}') LIMIT 1")
+            if not test_res.get("success"):
+                base_query = f"SELECT * FROM '{relative_path}'"
+        else:
+            base_query = f"SELECT * FROM '{relative_path}'"
+            
+        sql = f"DESCRIBE {base_query}"
         res = execute_duckdb_sql(task.context_dir, sql)
+        
         if res.get("success"):
+            schema_rows = res.get("rows", [])
+            schema_cols = res.get("columns", [])
+            
+            # Enhance schema with distinct values for VARCHAR/String columns
+            enhanced_schema = []
+            for row in schema_rows:
+                col_name = row[0]
+                col_type = row[1]
+                
+                # If it's a string/varchar or integer type, fetch some distinct values
+                distinct_values = []
+                if "VARCHAR" in str(col_type).upper() or "INTEGER" in str(col_type).upper() or "BIGINT" in str(col_type).upper():
+                    # Handle column names with spaces or special characters by quoting them
+                    safe_col_name = f'"{col_name}"' if not col_name.startswith('r.') else col_name
+                    if base_query.startswith("SELECT * FROM (SELECT unnest(records)"):
+                        # Special handling for nested JSON columns
+                        val_sql = f"SELECT DISTINCT r.{safe_col_name} FROM (SELECT unnest(records) as r FROM read_json_auto('{relative_path}')) WHERE r.{safe_col_name} IS NOT NULL LIMIT 10"
+                    else:
+                        val_sql = f"SELECT DISTINCT {safe_col_name} FROM '{relative_path}' WHERE {safe_col_name} IS NOT NULL LIMIT 10"
+                        
+                    val_res = execute_duckdb_sql(task.context_dir, val_sql)
+                    if val_res.get("success"):
+                        distinct_values = [v[0] for v in val_res.get("rows", [])]
+                    else:
+                        # Fallback if DISTINCT fails (e.g. nested lists)
+                        pass
+                
+                # Create a new row with distinct values appended
+                enhanced_row = list(row)
+                if distinct_values:
+                    # Truncate long strings for the preview
+                    formatted_vals = [str(v)[:50] + "..." if len(str(v)) > 50 else str(v) for v in distinct_values]
+                    enhanced_row.append(f"Sample values: {formatted_vals}")
+                else:
+                    enhanced_row.append("")
+                    
+                enhanced_schema.append(enhanced_row)
+            
+            # Add the new column to headers
+            schema_cols.append("Distinct_Samples")
+            
             return {
                 "path": relative_path,
-                "schema": res.get("rows"),
-                "columns": res.get("columns"),
-                "note": "Schema obtained via DuckDB DESCRIBE."
+                "schema": enhanced_schema,
+                "columns": schema_cols,
+                "note": "Schema obtained via DuckDB DESCRIBE. Categorical columns include distinct value samples to help you formulate exact WHERE clauses without guessing."
             }
         else:
             return {
@@ -121,7 +176,7 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
                 "error": res.get("error"),
                 "note": "Failed to get schema via DuckDB."
             }
-    
+
     return {
         "path": relative_path,
         "error": f"Unsupported file extension for schema extraction: {ext}",

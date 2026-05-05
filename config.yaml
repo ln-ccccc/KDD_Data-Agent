@@ -1,0 +1,12 @@
+dataset:
+  root_path: "demo_data/public/input"
+
+run:
+  run_id: "benchmark_v2_hybrid_rag"
+  output_dir: "artifacts/run"
+  max_workers: 4
+
+agent:
+  model: "gpt-4o-mini"
+  mode: "graph"
+  max_steps: 25

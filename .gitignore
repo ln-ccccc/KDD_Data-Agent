@@ -26,6 +26,7 @@ data/
 docs/
 tests/
 evaluation/
+
 artifacts/*
 !artifacts/.gitkeep
 
