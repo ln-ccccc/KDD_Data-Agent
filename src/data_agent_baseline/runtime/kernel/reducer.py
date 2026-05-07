@@ -43,6 +43,21 @@ def classify_error(action: str, observation: dict[str, Any]) -> str | None:
     return f"{action}:{err_type}:{pat}"
 
 
+def error_category(error_key: str | None) -> str:
+    if not error_key:
+        return "none"
+    key = error_key.lower()
+    if "no_such_table" in key or "no_such_column" in key:
+        return "schema_mismatch"
+    if "syntax_error" in key or "invalid_json_string" in key:
+        return "format_or_syntax"
+    if "timeout" in key:
+        return "timeout"
+    if "connection" in key or "network" in key or "apierror" in key:
+        return "network"
+    return "other"
+
+
 class StateReducer:
     """The only place allowed to mutate RuntimeState (SSOT)."""
 
@@ -97,12 +112,18 @@ class StateReducer:
         # Tick down recall cooldown once per step.
         state.recall_cooldown_steps = max(int(state.recall_cooldown_steps) - 1, 0)
 
-        # Error storm tracking (closed-loop signal).
+        # Error storm tracking (closed-loop signal with strategy escalation).
         error_key = classify_error(action, observation)
         if not error_key:
             state.last_error_key = None
             state.error_streak = 0
+            state.error_history = []
             return
+
+        history = list(state.error_history or [])
+        history.append(error_key)
+        history = history[-8:]
+        state.error_history = history
 
         if state.last_error_key == error_key:
             state.error_streak += 1
@@ -110,26 +131,63 @@ class StateReducer:
             state.last_error_key = error_key
             state.error_streak = 1
 
-        # Inject a strategy hint at streak>=2 and schedule auto recall for SQL errors.
-        if state.error_streak >= 2:
-            meta = observation.get("meta")
-            if not isinstance(meta, dict):
-                meta = {}
-                observation["meta"] = meta
-            if action in {"execute_context_sql", "execute_duckdb_sql"}:
-                path = action_input.get("path")
-                meta["strategy_hint"] = {
-                    "message": "Repeated SQL error. Inspect schema first, then retry with correct table/column names.",
+        recent = history[-5:]
+        sql_errors = sum(1 for key in recent if key.startswith("execute_context_sql:") or key.startswith("execute_duckdb_sql:"))
+        timeout_or_network = sum(1 for key in recent if error_category(key) in {"timeout", "network"})
+        schema_mismatch = sum(1 for key in recent if error_category(key) == "schema_mismatch")
+
+        storm_detected = (
+            state.error_streak >= 2
+            or sql_errors >= 3
+            or timeout_or_network >= 2
+            or schema_mismatch >= 3
+        )
+        if not storm_detected:
+            return
+
+        state.strategy_switch_count = int(state.strategy_switch_count) + 1
+        meta = observation.get("meta")
+        if not isinstance(meta, dict):
+            meta = {}
+            observation["meta"] = meta
+
+        strategy_hint: dict[str, Any] = {
+            "switch_count": state.strategy_switch_count,
+            "error_streak": state.error_streak,
+        }
+
+        if action in {"execute_context_sql", "execute_duckdb_sql"}:
+            path = action_input.get("path")
+            strategy_hint.update(
+                {
+                    "message": "SQL error storm detected. Switch strategy: inspect schema, then retry with narrower SQL.",
                     "suggested_action": "inspect_sqlite_schema" if action == "execute_context_sql" else "get_data_schema",
                     "suggested_action_input": {"path": path} if isinstance(path, str) and path else {},
                 }
-                if action == "execute_context_sql":
-                    schedule_auto_recall_after_sql_error(state, path=str(path) if isinstance(path, str) else None)
-                    state.recall_cooldown_steps = max(state.recall_cooldown_steps, self.config.recall_cooldown_steps)
-            elif action == "execute_python":
-                meta["strategy_hint"] = {
-                    "message": "Repeated Python error. Reduce output/print, validate column names, or prefer SQL/DuckDB aggregation.",
+            )
+            if action == "execute_context_sql":
+                schedule_auto_recall_after_sql_error(state, path=str(path) if isinstance(path, str) else None)
+                state.recall_cooldown_steps = max(state.recall_cooldown_steps, self.config.recall_cooldown_steps)
+        elif action == "execute_python":
+            strategy_hint.update(
+                {
+                    "message": "Python error storm detected. Switch strategy: prefer SQL or reduce output size before retry.",
                     "suggested_action": "execute_duckdb_sql",
                     "suggested_action_input": {},
                 }
+            )
+        else:
+            strategy_hint.update(
+                {
+                    "message": "Repeated tool failure detected. Switch to low-cost validation steps before retry.",
+                    "suggested_action": "update_plan",
+                    "suggested_action_input": {},
+                }
+            )
+        meta["strategy_hint"] = strategy_hint
 
+        if state.strategy_switch_count >= 3:
+            state.force_finalize = True
+            state.force_finalize_reason = (
+                "Error storm persisted after multiple strategy switches; force finalize to avoid timeout."
+            )

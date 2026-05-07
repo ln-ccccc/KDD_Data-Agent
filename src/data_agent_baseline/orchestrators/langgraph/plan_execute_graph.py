@@ -15,8 +15,9 @@ from data_agent_baseline.tools.registry import ToolRegistry
 class LangGraphPlanAndExecuteConfig:
     max_steps: int = 64
     history_max_steps: int = 16
-    max_prompt_chars: int = 24_000
+    max_prompt_tokens: int = 6_000
     compress_trigger_steps: int = 12
+    task_timeout_seconds: float = 0.0
 
 
 class LangGraphPlanAndExecuteAgent:
@@ -81,8 +82,9 @@ class LangGraphPlanAndExecuteAgent:
             config=LangGraphReActAgentConfig(
                 max_steps=self.config.max_steps,
                 history_max_steps=self.config.history_max_steps,
-                max_prompt_chars=self.config.max_prompt_chars,
+                max_prompt_tokens=self.config.max_prompt_tokens,
                 compress_trigger_steps=self.config.compress_trigger_steps,
+                task_timeout_seconds=self.config.task_timeout_seconds,
             ),
             system_prompt=planned_system,
         )

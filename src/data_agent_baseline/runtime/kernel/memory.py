@@ -8,6 +8,7 @@ from typing import Any
 from data_agent_baseline.agents.model import ModelAdapter, ModelMessage
 from data_agent_baseline.runtime.context_pruning import prune_for_prompt
 from data_agent_baseline.runtime.kernel.state import AbstractMemory, RuntimeState
+from data_agent_baseline.runtime.token_budget import count_json_tokens, count_text_tokens
 
 
 _JSON_FENCE_RE = re.compile(r"```json\s*(.*?)\s*```", re.IGNORECASE | re.DOTALL)
@@ -36,12 +37,14 @@ class AbstractUpdateConfig:
     observation_max_list_items: int = 50
 
 
-def estimate_prompt_chars(*, question: str, abstract: dict[str, Any], steps: list[dict[str, Any]]) -> int:
-    """Cheap character estimate used by policy; deterministic."""
-    size = len(question) + len(json.dumps(abstract, ensure_ascii=False, default=str))
+def estimate_prompt_tokens(
+    *, question: str, abstract: dict[str, Any], steps: list[dict[str, Any]], model_name: str
+) -> int:
+    """Token estimate used by policy; deterministic with fallback."""
+    size = count_text_tokens(question, model_name=model_name) + count_json_tokens(abstract, model_name=model_name)
     for step in steps:
-        size += len(str(step.get("raw_response", "")))
-        size += len(json.dumps(step.get("observation", {}), ensure_ascii=False, default=str))
+        size += count_text_tokens(str(step.get("raw_response", "")), model_name=model_name)
+        size += count_json_tokens(step.get("observation", {}), model_name=model_name)
     return size
 
 
@@ -132,4 +135,3 @@ def schedule_auto_recall_after_sql_error(state: RuntimeState, *, path: str | Non
         "query": {"path_contains": str(path).split("/")[-1]},
         "top_k": 1,
     }
-

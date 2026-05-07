@@ -53,6 +53,10 @@ class RuntimeState(BaseModel):
     # Control / feedback signals
     last_error_key: str | None = None
     error_streak: int = 0
+    error_history: list[str] = Field(default_factory=list)
+    strategy_switch_count: int = 0
+    force_finalize: bool = False
+    force_finalize_reason: str | None = None
     recall_cooldown_steps: int = 0
     pending_auto_recall: dict[str, Any] | None = None
     recall_snippets: list[dict[str, Any]] = Field(default_factory=list)
@@ -64,4 +68,3 @@ class RuntimeState(BaseModel):
 def coerce_state(state: dict[str, Any]) -> RuntimeState:
     """Validate and coerce a raw LangGraph dict into RuntimeState."""
     return RuntimeState.model_validate(state)
-

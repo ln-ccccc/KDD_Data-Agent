@@ -8,7 +8,7 @@ from data_agent_baseline.runtime.kernel.state import RuntimeState
 
 @dataclass(frozen=True, slots=True)
 class PolicyConfig:
-    max_prompt_chars: int = 24_000
+    max_prompt_tokens: int = 6_000
     compress_trigger_steps: int = 12
     default_window_steps: int = 8
     min_window_steps: int = 2
@@ -35,21 +35,21 @@ class ContextPolicy:
     def __init__(self, config: PolicyConfig) -> None:
         self.config = config
 
-    def decide(self, *, prompt_chars_estimate: int, state: RuntimeState) -> PolicyDecision:
+    def decide(self, *, prompt_tokens_estimate: int, state: RuntimeState) -> PolicyDecision:
         # Window sizing: shrink if oversized.
         window = max(int(state.prompt_window_steps or self.config.default_window_steps), self.config.min_window_steps)
-        if prompt_chars_estimate > self.config.max_prompt_chars:
+        if prompt_tokens_estimate > self.config.max_prompt_tokens:
             # shrink aggressively, but bounded
-            while window > self.config.min_window_steps and prompt_chars_estimate > self.config.max_prompt_chars:
+            while window > self.config.min_window_steps and prompt_tokens_estimate > self.config.max_prompt_tokens:
                 window -= 1
-                # prompt_chars_estimate will be recomputed by orchestrator/renderer.
+                # prompt_tokens_estimate will be recomputed by orchestrator/renderer.
                 break
 
         # Abstract update: sparse triggers only.
         should_update = False
         if state.steps and (
             state.steps_since_compress >= self.config.compress_trigger_steps
-            or prompt_chars_estimate > self.config.max_prompt_chars
+            or prompt_tokens_estimate > self.config.max_prompt_tokens
         ):
             # cooldown/backoff (stored in extra fields for now)
             last_update_step = int(getattr(state, "abstract_last_update_step", -10_000))
@@ -70,4 +70,3 @@ class ContextPolicy:
             should_inject_auto_recall=should_recall,
             auto_recall_request=req if should_recall else None,
         )
-

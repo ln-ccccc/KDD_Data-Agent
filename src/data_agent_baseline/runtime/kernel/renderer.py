@@ -17,12 +17,13 @@ class RenderConfig:
 class ContextRenderer:
     """Pure rendering: state -> messages (no side effects)."""
 
-    def __init__(self, *, tools_description: str, config: RenderConfig | None = None) -> None:
-        self.tools_description = tools_description
+    def __init__(self, *, config: RenderConfig | None = None) -> None:
         self.config = config or RenderConfig()
 
-    def build_messages(self, *, task: Any, state: RuntimeState, system_prompt: str) -> list[ModelMessage]:
-        system_content = build_system_prompt(self.tools_description, system_prompt=system_prompt)
+    def build_messages(
+        self, *, task: Any, state: RuntimeState, system_prompt: str, tools_description: str
+    ) -> list[ModelMessage]:
+        system_content = build_system_prompt(tools_description, system_prompt=system_prompt)
         
         plan_text = getattr(state, "current_plan", "")
         if plan_text:
@@ -51,4 +52,3 @@ class ContextRenderer:
             if step.observation:
                 messages.append(ModelMessage(role="user", content=build_observation_prompt(step.observation)))
         return messages
-

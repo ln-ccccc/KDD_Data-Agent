@@ -4,6 +4,8 @@ import sqlite3
 from pathlib import Path
 from time import perf_counter
 
+from data_agent_baseline.runtime.cache import SQL_RESULT_CACHE, context_namespace, file_fingerprint
+
 
 def _connect_read_only(path: Path) -> sqlite3.Connection:
     uri = f"file:{path.resolve().as_posix()}?mode=ro"
@@ -44,6 +46,12 @@ def execute_read_only_sql(
     normalized_sql = sql.lstrip().lower()
     if not normalized_sql.startswith(("select", "with", "pragma")):
         raise ValueError("Only read-only SQL statements are allowed.")
+    namespace = context_namespace(path.parent)
+    fp = file_fingerprint(path)
+    cache_key = f"sqlite:{fp}:{limit}:{time_limit_seconds}:{sql.strip()}"
+    cached = SQL_RESULT_CACHE.get(cache_key)
+    if isinstance(cached, dict):
+        return dict(cached)
 
     with _connect_read_only(path) as conn:
         # Soft time limit to prevent a single query from stalling the whole agent.
@@ -64,10 +72,12 @@ def execute_read_only_sql(
 
     truncated = len(rows) > limit
     limited_rows = rows[:limit]
-    return {
+    result = {
         "path": str(path),
         "columns": column_names,
         "rows": [list(row) for row in limited_rows],
         "row_count": len(limited_rows),
         "truncated": truncated,
     }
+    SQL_RESULT_CACHE.set(cache_key, result, namespace=namespace)
+    return result

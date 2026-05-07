@@ -25,6 +25,7 @@ from data_agent_baseline.agents.plan_execute import PlanAndExecuteAgent
 from data_agent_baseline.benchmark.dataset import DABenchPublicDataset
 from data_agent_baseline.config import AppConfig
 from data_agent_baseline.runtime.trace import prune_trace_payload, write_json
+from data_agent_baseline.runtime.cache import clear_task_caches
 from data_agent_baseline.tools.registry import ToolRegistry, create_default_tool_registry
 from data_agent_baseline.tools.schema_catalog import save_schema_catalog
 
@@ -146,6 +147,7 @@ def _run_single_task_core(
     """
     public_dataset = DABenchPublicDataset(config.dataset.root_path)
     task = public_dataset.get_task(task_id)
+    timeout_seconds = _resolve_task_timeout_seconds(config=config, difficulty=getattr(task, "difficulty", ""))
 
     selected_model = model or build_model_adapter(config)
     selected_tools = tools or create_default_tool_registry(
@@ -167,8 +169,9 @@ def _run_single_task_core(
             config=LangGraphReActAgentConfig(
                 max_steps=config.agent.max_steps,
                 history_max_steps=getattr(config.agent, "history_max_steps", 8),
-                max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24_000),
+                max_prompt_tokens=getattr(config.agent, "max_prompt_tokens", 6_000),
                 compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
+                task_timeout_seconds=float(timeout_seconds) if timeout_seconds > 0 else 0.0,
             ),
         )
     elif mode in {"hybrid_graph", "graph_hybrid"}:
@@ -178,8 +181,9 @@ def _run_single_task_core(
             config=LangGraphPlanAndExecuteConfig(
                 max_steps=config.agent.max_steps,
                 history_max_steps=getattr(config.agent, "history_max_steps", 8),
-                max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24_000),
+                max_prompt_tokens=getattr(config.agent, "max_prompt_tokens", 6_000),
                 compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
+                task_timeout_seconds=float(timeout_seconds) if timeout_seconds > 0 else 0.0,
             ),
         )
     else:
@@ -206,6 +210,18 @@ def _run_single_task_in_subprocess(task_id: str, config: AppConfig, queue: multi
         queue.put({"ok": False, "error": str(exc)})
 
 
+def _resolve_task_timeout_seconds(*, config: AppConfig, difficulty: str) -> float:
+    base_timeout = float(config.run.task_timeout_seconds)
+    if base_timeout <= 0:
+        return base_timeout
+    normalized = str(difficulty).strip().lower()
+    if normalized == "hard":
+        return base_timeout * 1.5
+    if normalized == "extreme":
+        return base_timeout * 2.0
+    return base_timeout
+
+
 def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[str, Any]:
     """
     运行单个任务，设置超时时间。
@@ -213,17 +229,10 @@ def _run_single_task_with_timeout(*, task_id: str, config: AppConfig) -> dict[st
     public_dataset = DABenchPublicDataset(config.dataset.root_path)
     task = public_dataset.get_task(task_id)
     
-    # Dynamic timeout based on difficulty
-    base_timeout = config.run.task_timeout_seconds
-    if base_timeout > 0:
-        if task.difficulty == "hard":
-            timeout_seconds = base_timeout * 1.5
-        elif task.difficulty == "extreme":
-            timeout_seconds = base_timeout * 2.0
-        else:
-            timeout_seconds = base_timeout
-    else:
-        timeout_seconds = base_timeout
+    timeout_seconds = _resolve_task_timeout_seconds(
+        config=config,
+        difficulty=getattr(task, "difficulty", ""),
+    )
 
     if timeout_seconds <= 0:
         return _run_single_task_core(task_id=task_id, config=config)
@@ -330,19 +339,20 @@ def run_single_task(
     """
     运行单个任务，返回任务结果。
     """
-    started_at = perf_counter()
-    if model is None and tools is None:
-        run_result = _run_single_task_with_timeout(task_id=task_id, config=config)
-    else:
-        run_result = _run_single_task_core(task_id=task_id, config=config, model=model, tools=tools)
-    run_result["e2e_elapsed_seconds"] = round(perf_counter() - started_at, 3)
-    run_result["trace_level"] = getattr(config.run, "trace_level", "standard")
-    
-    # fetch task
     public_dataset = DABenchPublicDataset(config.dataset.root_path)
     task = public_dataset.get_task(task_id)
-    
-    return _write_task_outputs(task_id, run_output_dir, run_result, task=task)
+    started_at = perf_counter()
+    try:
+        if model is None and tools is None:
+            run_result = _run_single_task_with_timeout(task_id=task_id, config=config)
+        else:
+            run_result = _run_single_task_core(task_id=task_id, config=config, model=model, tools=tools)
+        run_result["e2e_elapsed_seconds"] = round(perf_counter() - started_at, 3)
+        run_result["trace_level"] = getattr(config.run, "trace_level", "standard")
+        return _write_task_outputs(task_id, run_output_dir, run_result, task=task)
+    finally:
+        # Task-scoped cache must be released after each task.
+        clear_task_caches(task.context_dir)
 
 
 def run_benchmark(

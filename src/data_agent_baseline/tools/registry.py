@@ -31,6 +31,7 @@ class ToolSpec:
     name: str
     description: str
     input_schema: dict[str, Any]
+    group: str = "misc"
 
 # Tool execution result definition（observation）
 # Tool execution result definition（observation）
@@ -210,12 +211,14 @@ class ToolRegistry:
     specs: dict[str, ToolSpec]
     handlers: dict[str, ToolHandler]
 
-    def describe_for_prompt(self) -> str:
+    def describe_for_prompt(self, *, active_groups: set[str] | None = None) -> str:
         """描述所有工具"""
         lines = []
         # 排序工具名称，确保一致的输出顺序
         for name in sorted(self.specs):
             spec = self.specs[name]
+            if active_groups and spec.group not in active_groups:
+                continue
             lines.append(f"- {spec.name}: {spec.description}")
             lines.append(f"  input_schema: {spec.input_schema}")
         return "\n".join(lines)
@@ -303,16 +306,19 @@ def create_default_tool_registry(
                 "columns": ["column_name"],
                 "rows": [["value_1"]],
             },
+            group="planning_debugging",
         ),
         "execute_duckdb_sql": ToolSpec(
             name="execute_duckdb_sql",
             description="Run a SQL query via DuckDB in the context directory. Can query CSV, Parquet, and JSON files directly (e.g., SELECT * FROM 'data.csv'). IMPORTANT: To query nested arrays in JSON (like {'records': [...]}), use `read_json_auto('file.json')` and UNNEST, or `SELECT * FROM (SELECT unnest(records) as r FROM read_json_auto('file.json'))`.",
             input_schema={"sql": "SELECT * FROM 'data.csv'", "limit": 200},
+            group="code_execution",
         ),
         "execute_context_sql": ToolSpec(
             name="execute_context_sql",
             description="Run a read-only SQL query against a sqlite/db file inside context.",
             input_schema={"path": "relative/path/to/file.sqlite", "sql": "SELECT ...", "limit": 200},
+            group="code_execution",
         ),
         "execute_python": ToolSpec(
             name="execute_python",
@@ -324,56 +330,67 @@ def create_default_tool_registry(
             input_schema={
                 "code": "import os\nprint(sorted(os.listdir('.')))",
             },
+            group="code_execution",
         ),
         "get_data_schema": ToolSpec(
             name="get_data_schema",
             description="Get the column names and data types of a CSV, JSON, Parquet, or Excel file inside context. ALWAYS use this before querying a file for the first time.",
             input_schema={"path": "relative/path/to/file.csv"},
+            group="data_exploration",
         ),
         "extract_dataframe_stats": ToolSpec(
             name="extract_dataframe_stats",
             description="Extract statistical information (EDA) from a data file (CSV, Parquet, JSON, Excel) including row/column count, describe(), missing values, and a data sample (head). Use this to get a deeper understanding of the data distribution.",
             input_schema={"path": "relative/path/to/file.csv"},
+            group="data_exploration",
         ),
         "inspect_sqlite_schema": ToolSpec(
             name="inspect_sqlite_schema",
             description="Inspect tables and columns in a sqlite/db file inside context.",
             input_schema={"path": "relative/path/to/file.sqlite"},
+            group="schema_mapping",
         ),
         "list_context": ToolSpec(
             name="list_context",
             description="List files and directories available under context.",
             input_schema={"max_depth": 4},
+            group="data_exploration",
         ),
         "read_csv": ToolSpec(
             name="read_csv",
             description="Read a preview of a CSV file inside context.",
             input_schema={"path": "relative/path/to/file.csv", "max_rows": 20},
+            group="data_exploration",
         ),
         "read_doc": ToolSpec(
             name="read_doc",
             description="Read a text-like document inside context.",
             input_schema={"path": "relative/path/to/file.md", "max_chars": 4000},
+            group="data_exploration",
         ),
         "read_json": ToolSpec(
             name="read_json",
             description="Read a preview of a JSON file inside context.",
             input_schema={"path": "relative/path/to/file.json", "max_chars": 4000},
+            group="data_exploration",
         ),
         "list_knowledge_headings": ToolSpec(
             name="list_knowledge_headings",
             description="List available headings from the knowledge documents.",
             input_schema={"query": "Optional query string to filter headings"},
+            group="knowledge_retrieval",
         ),
         "read_knowledge_section": ToolSpec(
             name="read_knowledge_section",
             description="Read a specific section from the knowledge documents by its heading.",
             input_schema={"heading": "The exact heading string"},
+            group="knowledge_retrieval",
         ),
         "search_knowledge_doc": ToolSpec(
             name="search_knowledge_doc",
             description="Search knowledge documents using Hybrid RAG to find relevant information.",
             input_schema={"query": "The search query string"},
+            group="knowledge_retrieval",
         ),
         "retrieve_schema_context": ToolSpec(
             name="retrieve_schema_context",
@@ -381,7 +398,8 @@ def create_default_tool_registry(
             input_schema={
                 "query": "The natural language query describing what fields or entities you are looking for",
                 "top_k": 10
-            }
+            },
+            group="schema_mapping",
         ),
     "update_cheat_sheet": ToolSpec(
             name="update_cheat_sheet",
@@ -392,13 +410,15 @@ def create_default_tool_registry(
                 "solution": "The exact code/SQL that fixed it",
                 "reason": "Why the solution worked"
             },
+            group="planning_debugging",
         ),
         "update_plan": ToolSpec(
             name="update_plan",
             description="Update your persistent task plan/TODO list. Use this to track progress, mark tasks as DONE, and add new sub-tasks. The plan is always visible to you.",
             input_schema={
                 "new_plan": "The complete, updated markdown text of your plan."
-            }
+            },
+            group="planning_debugging",
         ),
     }
 
@@ -437,7 +457,8 @@ def create_default_tool_registry(
                     "summary": "Detailed summary of your findings or results.",
                     "data_references": ["List of any newly generated files or views.", "Can be empty."],
                     "raw_findings": {"type": "object", "description": "Any structured JSON data to return."}
-                }
+                },
+                group="planning_debugging",
             )
             sub_tools.handlers["subagent_finish"] = subagent_finish
 
@@ -447,7 +468,7 @@ def create_default_tool_registry(
                 config=LangGraphReActAgentConfig(
                     max_steps=getattr(config.agent, "max_steps", 64) // 2, # Give subagent less steps
                     history_max_steps=getattr(config.agent, "history_max_steps", 16),
-                    max_prompt_chars=getattr(config.agent, "max_prompt_chars", 24000),
+                    max_prompt_tokens=getattr(config.agent, "max_prompt_tokens", 6000),
                     compress_trigger_steps=getattr(config.agent, "compress_trigger_steps", 12),
                 ),
                 system_prompt=SUBAGENT_SYSTEM_PROMPT,
@@ -460,6 +481,7 @@ def create_default_tool_registry(
                 "sub_task_description": "Detailed instructions of what the subagent needs to find or compute.",
                 "focus_files": ["file1.csv", "file2.json"]
             },
+            group="planning_debugging",
         )
         handlers["delegate_to_data_analyst"] = build_subagent_tool(_create_subagent)
 
