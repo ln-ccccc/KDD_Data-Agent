@@ -1,9 +1,8 @@
-- [ ] 内置工具可以通过 MCP 适配层被发现与调用，且不需要在 prompt 中全量注入工具描述
-- [ ] 外部 MCP server 可通过配置动态注册；离线环境下系统可使用内置工具与已缓存的外部工具定义稳定运行
+- [ ] prompt 构建使用 tokenizer 做 token 预算控制（`max_prompt_tokens`），超限时按优先级裁剪/摘要且保留 schema 与错误信息
+- [ ] schema/采样、重复 SQL、embedding 结果命中缓存（TTL/LRU），并具备明确的失效策略（任务结束清理；数据变更时 key 变化/失效）
 - [ ] 工具分组与按需加载策略生效：同等任务下 prompt 中工具描述 token 显著降低且功能不回退
-- [ ] schema/采样、重复 SQL、embedding 结果命中缓存（TTL/LRU），并具备可观测的命中率与失效策略
-- [ ] prompt 构建使用 tokenizer 做 token 预算控制，超限时按优先级裁剪/摘要且保留 schema 与错误信息
-- [ ] embedding 请求支持 batch，且 embedding 模型可以通过配置切换或离线回退
-- [ ] 错误风暴检测可以识别至少两类模式（如 SQL 重试风暴、网络错误）并触发策略切换
+- [ ] embedding 请求支持 batch，且 embedding 模型可以通过配置切换或离线/不可用降级
+- [ ] 错误风暴检测可识别至少两类模式（如 SQL 重试风暴、网络/超时）并触发策略切换，减少无效重试
+- [ ] 任务级超时控制生效：达到 `task_timeout_seconds` 或临近超时时触发降级并收敛提交，避免评测超时
 - [ ] 多任务并发运行时共享资源线程安全，任务状态与记忆不互相污染
-- [ ] 单元测试覆盖关键决策与组件（tool provider、缓存、token budget、错误风暴检测），并通过本地 benchmark 验证无人值守稳定性
+- [ ] 单元测试覆盖关键决策与组件（token budget、缓存、错误风暴检测、工具动态加载、任务超时），并通过本地 benchmark 验证无人值守稳定性
