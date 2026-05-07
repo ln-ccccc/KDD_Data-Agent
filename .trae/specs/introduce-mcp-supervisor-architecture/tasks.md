@@ -1,0 +1,39 @@
+# Tasks
+- [ ] Task 1: 设计 MCP 抽象层与配置接口
+  - [ ] SubTask 1.1: 定义 MCP Server/Client/Tool 的最小接口与生命周期（发现、describe、invoke、healthcheck）
+  - [ ] SubTask 1.2: 在配置中加入 MCP servers 白名单、离线模式、缓存目录等参数
+- [ ] Task 2: 将现有内置工具封装为 MCP tools（兼容现有 ToolRegistry）
+  - [ ] SubTask 2.1: 为 `tools/registry.py` 增加“tool provider”抽象，使其可从 MCP provider 拉取工具元信息
+  - [ ] SubTask 2.2: 为内置工具提供 MCP 适配层（input_schema/输出结构不变或提供兼容映射）
+- [ ] Task 3: 外部 MCP server 动态注册与离线回退
+  - [ ] SubTask 3.1: 支持从本地配置注册外部 MCP server，并提供启动期健康检查与失败降级
+  - [ ] SubTask 3.2: 实现工具定义缓存（本地文件），离线时仅使用缓存与内置工具
+- [ ] Task 4: 实现工具分组与按需加载策略
+  - [ ] SubTask 4.1: 定义工具分组（data_exploration / visualization / code_execution / knowledge_retrieval / planning_debugging）
+  - [ ] SubTask 4.2: 在 prompt 构建或 policy 中实现阶段化注入/裁剪策略，并提供可测试的决策函数
+- [ ] Task 5: 引入 TTL/LRU 缓存层（schema/SQL/embedding）
+  - [ ] SubTask 5.1: schema 与采样结果缓存（含失效策略与 key 规范）
+  - [ ] SubTask 5.2: 重复只读 SQL 结果缓存（含 TTL 与大小限制）
+  - [ ] SubTask 5.3: embedding 结果缓存与 batch 请求合并
+- [ ] Task 6: Token budget 管理与语义压缩升级
+  - [ ] SubTask 6.1: 引入 tokenizer 计算 token 并替换字符预算逻辑（按模型动态调整）
+  - [ ] SubTask 6.2: 对历史步骤执行语义摘要（保留 schema/错误优先级），并与现有压缩中间件集成
+- [ ] Task 7: 增强错误风暴检测与策略切换
+  - [ ] SubTask 7.1: 定义错误分类与模式识别规则（SQL 重试风暴、工具参数错误、网络错误等）
+  - [ ] SubTask 7.2: 在 orchestrator/policy 中接入策略切换（回退、改写 query、委派 Specialist）
+- [ ] Task 8: 并发安全与共享资源隔离
+  - [ ] SubTask 8.1: 为共享缓存/embedding client/MCP 连接引入并发保护（锁或线程安全实现）
+  - [ ] SubTask 8.2: 增加并发回归测试（多任务并行下无交叉污染）
+- [ ] Task 9: 单元测试与基准验证（面向比赛“无人值守”稳定性）
+  - [ ] SubTask 9.1: 为 tool provider、token budget、缓存 key/TTL、错误风暴检测编写单元测试
+  - [ ] SubTask 9.2: 跑本地 benchmark 对比升级前后：成功率、平均 token、平均耗时（至少记录到 artifacts）
+
+# Task Dependencies
+- [Task 2] depends on [Task 1]
+- [Task 3] depends on [Task 1], [Task 2]
+- [Task 4] depends on [Task 2]
+- [Task 5] depends on [Task 2]
+- [Task 6] depends on [Task 4], [Task 5]
+- [Task 7] depends on [Task 6]
+- [Task 8] depends on [Task 3], [Task 5]
+- [Task 9] depends on [Task 2], [Task 5], [Task 6], [Task 7], [Task 8]
