@@ -41,7 +41,7 @@ class AgentConfig:
     request_timeout_seconds: float = 60.0
     retry: RetryPolicy = field(default_factory=RetryPolicy)
     # Context / memory knobs (lightweight, for benchmark stability)
-    max_prompt_chars: int = 24_000
+    max_prompt_tokens: int = 6_000
     compress_trigger_steps: int = 12
     history_max_steps: int = 16
 
@@ -103,6 +103,12 @@ def load_app_config(config_path: Path) -> AppConfig:
     )
     model_val = os.environ.get("MODEL_NAME") or agent_payload.get("model", agent_defaults.model)
 
+    max_prompt_tokens_val = agent_payload.get("max_prompt_tokens")
+    if max_prompt_tokens_val is None:
+        # Backward-compatible fallback from character budget.
+        legacy_chars = int(agent_payload.get("max_prompt_chars", 24_000))
+        max_prompt_tokens_val = max(512, legacy_chars // 4)
+
     agent_config = AgentConfig(
         model=str(model_val),
         api_base=str(api_base_val),
@@ -116,7 +122,7 @@ def load_app_config(config_path: Path) -> AppConfig:
             agent_payload.get("request_timeout_seconds", agent_defaults.request_timeout_seconds)
         ),
         retry=retry_policy,
-        max_prompt_chars=int(agent_payload.get("max_prompt_chars", agent_defaults.max_prompt_chars)),
+        max_prompt_tokens=int(max_prompt_tokens_val),
         compress_trigger_steps=int(
             agent_payload.get("compress_trigger_steps", agent_defaults.compress_trigger_steps)
         ),

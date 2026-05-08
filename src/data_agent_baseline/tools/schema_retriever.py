@@ -3,26 +3,29 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 import numpy as np
+from threading import Lock
+
+from data_agent_baseline.runtime.cache import EMBEDDING_CACHE, RETRIEVAL_CACHE, context_namespace, file_fingerprint
 
 # Lazy load models to avoid loading overhead for simple tasks
 _schema_embedding_model = None
+_schema_embedding_model_lock = Lock()
+_schema_embedding_infer_lock = Lock()
 
 def get_schema_embedding_model():
     global _schema_embedding_model
     if _schema_embedding_model is None:
-        from sentence_transformers import SentenceTransformer
-        # Use Qwen2-1.5B-instruct for Schema Linking (sweet spot for cross-lingual and complex schema)
-        # Note: If memory is too tight on the target environment, we can fallback to bge-m3 or all-MiniLM-L6-v2
-        # But per the plan, Alibaba-NLP/gte-Qwen2-1.5B-instruct is the target.
-        # We will use 'Alibaba-NLP/gte-Qwen2-1.5B-instruct'
-        
-        try:
-            logging.info("Loading Alibaba-NLP/gte-Qwen2-1.5B-instruct for Schema Linking...")
-            _schema_embedding_model = SentenceTransformer('Alibaba-NLP/gte-Qwen2-1.5B-instruct', trust_remote_code=True)
-            logging.info("Model loaded successfully.")
-        except Exception as e:
-            logging.warning(f"Failed to load gte-Qwen2-1.5B-instruct: {e}. Falling back to all-MiniLM-L6-v2")
-            _schema_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        with _schema_embedding_model_lock:
+            if _schema_embedding_model is None:
+                from sentence_transformers import SentenceTransformer
+
+                try:
+                    logging.info("Loading Alibaba-NLP/gte-Qwen2-1.5B-instruct for Schema Linking...")
+                    _schema_embedding_model = SentenceTransformer('Alibaba-NLP/gte-Qwen2-1.5B-instruct', trust_remote_code=True)
+                    logging.info("Model loaded successfully.")
+                except Exception as e:
+                    logging.warning(f"Failed to load gte-Qwen2-1.5B-instruct: {e}. Falling back to all-MiniLM-L6-v2")
+                    _schema_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
             
     return _schema_embedding_model
 
@@ -84,6 +87,12 @@ def retrieve_schema_context(catalog_path: Path, query: str, top_k: int = 5) -> D
     """
     if not catalog_path.exists():
         return {"error": f"Schema catalog not found at {catalog_path}"}
+    namespace = context_namespace(catalog_path.parent)
+    catalog_fp = file_fingerprint(catalog_path)
+    retrieval_key = f"schema_retrieve:{catalog_fp}:{top_k}:{query.strip()}"
+    cached_retrieval = RETRIEVAL_CACHE.get(retrieval_key)
+    if isinstance(cached_retrieval, dict):
+        return dict(cached_retrieval)
         
     try:
         with open(catalog_path, 'r', encoding='utf-8') as f:
@@ -91,7 +100,13 @@ def retrieve_schema_context(catalog_path: Path, query: str, top_k: int = 5) -> D
     except Exception as e:
         return {"error": f"Failed to parse schema catalog: {e}"}
         
-    blocks = build_schema_index_blocks(catalog)
+    blocks_key = f"schema_blocks:{catalog_fp}"
+    cached_blocks = RETRIEVAL_CACHE.get(blocks_key)
+    if isinstance(cached_blocks, list):
+        blocks = cached_blocks
+    else:
+        blocks = build_schema_index_blocks(catalog)
+        RETRIEVAL_CACHE.set(blocks_key, blocks, namespace=namespace)
     if not blocks:
         return {"error": "Schema catalog is empty."}
         
@@ -114,8 +129,23 @@ def retrieve_schema_context(catalog_path: Path, query: str, top_k: int = 5) -> D
         instruction = "Given a natural language query, retrieve the relevant database tables and columns that answer the query: "
         formatted_query = f"{instruction}{query}"
         
-        corpus_embeddings = model.encode(corpus)
-        query_embedding = model.encode([formatted_query])
+        corpus_emb_key = f"schema_corpus_emb:{catalog_fp}:gte-Qwen2-1.5B-instruct"
+        cached_corpus_emb = EMBEDDING_CACHE.get(corpus_emb_key)
+        if cached_corpus_emb is None:
+            with _schema_embedding_infer_lock:
+                corpus_embeddings = model.encode(corpus)
+            EMBEDDING_CACHE.set(corpus_emb_key, corpus_embeddings)
+        else:
+            corpus_embeddings = cached_corpus_emb
+
+        query_emb_key = f"schema_query_emb:gte-Qwen2-1.5B-instruct:{formatted_query}"
+        cached_query_emb = EMBEDDING_CACHE.get(query_emb_key)
+        if cached_query_emb is None:
+            with _schema_embedding_infer_lock:
+                query_embedding = model.encode([formatted_query])
+            EMBEDDING_CACHE.set(query_emb_key, query_embedding)
+        else:
+            query_embedding = cached_query_emb
         
         semantic_scores = cosine_similarity(query_embedding, corpus_embeddings)[0]
         
@@ -144,8 +174,10 @@ def retrieve_schema_context(catalog_path: Path, query: str, top_k: int = 5) -> D
         block = blocks[idx]
         results.append(block["display_text"])
         
-    return {
+    result = {
         "query": query,
         "strategy": strategy,
         "constrained_schema": results
     }
+    RETRIEVAL_CACHE.set(retrieval_key, result, namespace=namespace)
+    return result

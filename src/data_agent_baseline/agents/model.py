@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import sleep
+from threading import Lock
 from typing import Any, Protocol
 
 from openai import APIError, OpenAI
@@ -62,6 +63,7 @@ class OpenAIModelAdapter(ModelAdapter):
         self.seed_enabled = bool(seed_enabled)
         self.request_timeout_seconds = float(request_timeout_seconds)
         self.retry = (retry or RetryPolicy()).normalized()
+        self._client_lock = Lock()
         if not self.api_key:
             raise ModelError("Missing model API key in config.agent.api_key.")
 
@@ -85,7 +87,8 @@ class OpenAIModelAdapter(ModelAdapter):
                 if self.seed_enabled and self.seed is not None:
                     request_kwargs["seed"] = int(self.seed)
 
-                response = self._client.chat.completions.create(**request_kwargs)
+                with self._client_lock:
+                    response = self._client.chat.completions.create(**request_kwargs)
                 last_error = None
                 break
             except APIError as exc:

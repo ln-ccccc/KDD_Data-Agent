@@ -3,11 +3,15 @@ from __future__ import annotations
 import duckdb
 from pathlib import Path
 import os
+import re
+
+from data_agent_baseline.runtime.cache import SQL_RESULT_CACHE, context_namespace, file_fingerprint
 
 # Define a project-level extensions directory
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DUCKDB_EXT_DIR = PROJECT_ROOT / ".duckdb_extensions"
 DUCKDB_EXT_DIR.mkdir(exist_ok=True)
+_QUOTED_PATH_RE = re.compile(r"'([^']+)'")
 
 # Pre-install extensions once at module load to avoid repeated downloads and permissions issues per task
 _init_conn = duckdb.connect(':memory:', config={
@@ -34,9 +38,25 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
     # Use an in-memory database
     # Point extension_directory to the shared project-level directory
     # Set home_directory to avoid permission issues
+    resolved_context_root = context_root.resolve()
+    namespace = context_namespace(resolved_context_root)
+    fingerprints: list[str] = []
+    for raw_path in _QUOTED_PATH_RE.findall(sql):
+        candidate = (resolved_context_root / raw_path).resolve()
+        if candidate.exists() and candidate.is_file():
+            try:
+                fingerprints.append(file_fingerprint(candidate))
+            except Exception:
+                continue
+    fp_text = "|".join(sorted(fingerprints)) if fingerprints else resolved_context_root.as_posix()
+    cache_key = f"duckdb:{fp_text}:{limit}:{sql.strip()}"
+    cached = SQL_RESULT_CACHE.get(cache_key)
+    if isinstance(cached, dict):
+        return dict(cached)
+
     conn = duckdb.connect(':memory:', config={
         'extension_directory': DUCKDB_EXT_DIR.as_posix(),
-        'home_directory': context_root.resolve().as_posix()
+        'home_directory': resolved_context_root.as_posix()
     })
     try:
         conn.execute("SET autoinstall_known_extensions=false;")
@@ -52,8 +72,7 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
             pass
 
         # Set file_search_path to context_root so relative file paths in queries resolve correctly
-        resolved_context = context_root.resolve().as_posix()
-        conn.execute(f"SET file_search_path = '{resolved_context}'")
+        conn.execute(f"SET file_search_path = '{resolved_context_root.as_posix()}'")
         
         # Enforce read-only for file operations (optional but good practice for queries)
         # Note: If we need to write out files, we shouldn't enable this.
@@ -66,13 +85,15 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
         
         if cursor.description is None:
             # e.g., for PRAGMA or statements without a result set
-            return {
+            result = {
                 "success": True,
                 "columns": [],
                 "rows": [],
                 "row_count": 0,
                 "truncated": False,
             }
+            SQL_RESULT_CACHE.set(cache_key, result, namespace=namespace)
+            return result
 
         column_names = [item[0] for item in cursor.description]
         rows = cursor.fetchmany(limit + 1)
@@ -103,6 +124,7 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
                 "Use `retrieve_schema_context` or `execute_duckdb_sql` with `SELECT DISTINCT ...` to verify the actual values in the database before rewriting your SQL."
             )
 
+        SQL_RESULT_CACHE.set(cache_key, result, namespace=namespace)
         return result
     except Exception as e:
         return {

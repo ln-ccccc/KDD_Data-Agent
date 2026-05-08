@@ -1,0 +1,39 @@
+# Tasks
+- [ ] Task 1: Token budget 精确计算（从字符预算升级为 token 预算）
+  - [ ] SubTask 1.1: 引入 tokenizer 以按模型计算 prompt token 数并实现 `max_prompt_tokens`
+  - [ ] SubTask 1.2: 定义 token 超限时的裁剪优先级（schema/错误 > plan > 一般工具输出 > 历史步骤）
+- [ ] Task 2: 引入 TTL/LRU 缓存层（schema/SQL/embedding）
+  - [ ] SubTask 2.1: schema 与采样结果缓存（含 key 规范、TTL、大小上限）
+  - [ ] SubTask 2.2: 重复只读 SQL 结果缓存（同一路径+SQL+limit 命中）
+  - [ ] SubTask 2.3: embedding 结果缓存（文本归一化 + 模型参数纳入 key）
+  - [ ] SubTask 2.4: 明确缓存失效策略（任务结束清理；路径/mtime/size 变更失效）
+- [ ] Task 3: 错误模式识别 + 策略切换（减少无效重试/超时）
+  - [ ] SubTask 3.1: 定义错误分类与风暴检测规则（SQL 重试风暴、工具参数错误、网络/超时等）
+  - [ ] SubTask 3.2: 接入策略切换（回退到 schema 检索、缩小 query、增加探索性 limit、或更换执行引擎）
+  - [ ] SubTask 3.3: 增加兜底行为（策略耗尽/重试耗尽时强制收敛并终止，避免超时）
+- [ ] Task 4: 工具分组与按阶段动态加载（减少 prompt 噪音）
+  - [ ] SubTask 4.1: 定义工具分组（data_exploration / code_execution / knowledge_retrieval / schema_mapping / planning_debugging）
+  - [ ] SubTask 4.2: 在 prompt 构建或 policy 中实现阶段化注入/裁剪，并提供可测试的决策函数
+  - [ ] SubTask 4.3: 固化“阶段 → 工具组”映射（避免实现期自由猜测）
+- [ ] Task 5: Embedding batch 与可配置
+  - [ ] SubTask 5.1: 对 schema 检索相关 embedding 做 batch 请求合并
+  - [ ] SubTask 5.2: embedding 模型可配置，并提供离线/不可用时的降级策略（如仅 BM25 或关键词）
+- [ ] Task 6: 并发安全与共享资源隔离
+  - [ ] SubTask 6.1: embedding client 单例 + `threading.Lock` 保护关键调用路径
+  - [ ] SubTask 6.2: 缓存采用 `TTLCache`/`LRUCache` 并以 `threading.Lock` 包装访问
+  - [ ] SubTask 6.3: 增加并发回归测试（多任务并行下无交叉污染）
+- [ ] Task 7: 任务级超时控制与预算驱动降级
+  - [ ] SubTask 7.1: 接入任务级超时（`task_timeout_seconds`）并定义临近超时阈值
+  - [ ] SubTask 7.2: 临近超时降级策略（禁用高成本动作，优先 finalize/submit）
+- [ ] Task 8: 单元测试与 benchmark 验证（面向无人值守稳定性）
+  - [ ] SubTask 8.1: 为 token budget、缓存、错误风暴检测、工具动态加载、任务超时编写单元测试
+  - [ ] SubTask 8.2: 跑本地 benchmark 对比升级前后：完成率、平均 token、平均耗时（记录到 artifacts）
+
+# Task Dependencies
+- [Task 2] depends on [Task 1]
+- [Task 3] depends on [Task 1], [Task 2]
+- [Task 4] depends on [Task 1]
+- [Task 5] depends on [Task 2]
+- [Task 6] depends on [Task 2], [Task 5]
+- [Task 7] depends on [Task 1], [Task 3]
+- [Task 8] depends on [Task 1], [Task 2], [Task 3], [Task 4], [Task 5], [Task 6], [Task 7]

@@ -17,7 +17,7 @@ from data_agent_baseline.agents.prompt import (
 from data_agent_baseline.agents.react import parse_model_step
 from data_agent_baseline.agents.runtime import AgentRunResult, AgentRuntimeState, StepRecord
 from data_agent_baseline.benchmark.schema import PublicTask
-from data_agent_baseline.runtime.kernel.memory import AbstractUpdater, AbstractUpdateConfig, estimate_prompt_chars
+from data_agent_baseline.runtime.kernel.memory import AbstractUpdater, AbstractUpdateConfig, estimate_prompt_tokens
 from data_agent_baseline.runtime.kernel.policy import ContextPolicy, PolicyConfig
 from data_agent_baseline.runtime.kernel.recall_provider import RecallProvider
 from data_agent_baseline.runtime.kernel.reducer import ReducerConfig, StateReducer
@@ -34,12 +34,15 @@ class LangGraphReActAgentConfig:
     observation_max_list_items: int = 50
     parse_repair_max_retries: int = 1
     # Context control (policy knobs)
-    max_prompt_chars: int = 24_000
+    max_prompt_tokens: int = 6_000
     compress_trigger_steps: int = 12
     min_prompt_window_steps: int = 2
     abstract_min_interval_steps: int = 6
     abstract_failure_backoff_steps: int = 8
     recall_cooldown_steps: int = 2
+    task_timeout_seconds: float = 0.0
+    timeout_guard_seconds: float = 20.0
+    timeout_guard_ratio: float = 0.10
 
 
 class _GraphState(TypedDict, total=False):
@@ -67,7 +70,7 @@ class LangGraphReActAgent:
         # Kernel components (policy / rendering / reducers).
         self._policy = ContextPolicy(
             PolicyConfig(
-                max_prompt_chars=self.config.max_prompt_chars,
+                max_prompt_tokens=self.config.max_prompt_tokens,
                 compress_trigger_steps=self.config.compress_trigger_steps,
                 default_window_steps=self.config.history_max_steps,
                 min_window_steps=self.config.min_prompt_window_steps,
@@ -92,10 +95,27 @@ class LangGraphReActAgent:
         )
         self._recall_provider = RecallProvider()
         self._renderer = ContextRenderer(
-            tools_description=self.tools.describe_for_prompt(),
             config=RenderConfig(max_recall_snippets=3),
         )
         self._app = self._build_graph()
+
+    def _active_tool_groups(self, rt: RuntimeState) -> tuple[str, set[str]]:
+        actions = [s.action for s in rt.steps]
+        has_schema = any(a in {"get_data_schema", "inspect_sqlite_schema", "retrieve_schema_context"} for a in actions)
+        has_exec = any(a in {"execute_context_sql", "execute_duckdb_sql", "execute_python"} for a in actions)
+        steps_used = len(rt.steps)
+
+        if bool(getattr(rt, "near_timeout_mode", False)):
+            return "finalize", {"planning_debugging"}
+        if steps_used == 0:
+            return "explore", {"data_exploration", "knowledge_retrieval", "planning_debugging"}
+        if steps_used >= max(self.config.max_steps - 2, 1):
+            return "finalize", {"planning_debugging"}
+        if not has_schema and not has_exec:
+            return "schema_map", {"data_exploration", "schema_mapping", "knowledge_retrieval", "planning_debugging"}
+        if has_schema and not has_exec:
+            return "draft_sql", {"schema_mapping", "code_execution", "planning_debugging"}
+        return "execute_validate", {"code_execution", "data_exploration", "schema_mapping", "planning_debugging"}
 
     def _repair_action_json(self, *, raw_response: str, error: str) -> str:
         """Ask the model to reformat its last output into valid action JSON."""
@@ -118,15 +138,34 @@ class LangGraphReActAgent:
         system_prompt = gs.get("system_prompt") or self.system_prompt
         rt = coerce_state(gs.get("rt") or {})
 
+        # Soft timeout guard inside agent loop.
+        if self.config.task_timeout_seconds > 0:
+            started_at = float(getattr(rt, "task_started_at", perf_counter()))
+            elapsed = perf_counter() - started_at
+            remaining = self.config.task_timeout_seconds - elapsed
+            rt.__dict__["timeout_remaining_seconds"] = round(remaining, 3)
+            if remaining <= 0:
+                rt.force_finalize = True
+                rt.force_finalize_reason = "Task timeout budget exhausted. Force finalize."
+            else:
+                guard_threshold = max(
+                    float(self.config.timeout_guard_seconds),
+                    float(self.config.task_timeout_seconds) * float(self.config.timeout_guard_ratio),
+                )
+                if remaining <= guard_threshold:
+                    rt.__dict__["near_timeout_mode"] = True
+                    rt.prompt_window_steps = max(1, min(rt.prompt_window_steps, self.config.min_prompt_window_steps))
+
         # Policy: estimate prompt size using current window.
         window_n = max(int(rt.prompt_window_steps), 1)
         step_dicts = [s.model_dump(mode="python") for s in rt.steps[-window_n:]]
-        prompt_chars = estimate_prompt_chars(
+        prompt_tokens = estimate_prompt_tokens(
             question=getattr(task, "question", ""),
             abstract=rt.abstract.model_dump(mode="python"),
             steps=step_dicts,
+            model_name=getattr(self.model, "model", "unknown-model"),
         )
-        decision = self._policy.decide(prompt_chars_estimate=prompt_chars, state=rt)
+        decision = self._policy.decide(prompt_tokens_estimate=prompt_tokens, state=rt)
         rt.prompt_window_steps = decision.window_steps
 
         # Mechanism: auto recall injection (internal memory read)
@@ -159,9 +198,18 @@ class LangGraphReActAgent:
                 # backoff on failure
                 rt.__dict__["abstract_backoff_until_step"] = len(rt.steps) + self.config.abstract_failure_backoff_steps
 
+        stage_name, active_groups = self._active_tool_groups(rt)
+        rt.__dict__["current_stage"] = stage_name
+        tools_description = self.tools.describe_for_prompt(active_groups=active_groups)
+
         llm_started_at = perf_counter()
         raw_response = self.model.complete(
-            self._renderer.build_messages(task=task, state=rt, system_prompt=system_prompt)
+            self._renderer.build_messages(
+                task=task,
+                state=rt,
+                system_prompt=system_prompt,
+                tools_description=tools_description,
+            )
         )
         llm_elapsed = round(perf_counter() - llm_started_at, 6)
 
@@ -217,6 +265,36 @@ class LangGraphReActAgent:
                 gs["rt"] = rt.to_langgraph_dict()
                 return gs
 
+            # Near-timeout guard: skip high-cost exploratory actions.
+            if bool(getattr(rt, "near_timeout_mode", False)) and model_step.action in {
+                "read_doc",
+                "search_knowledge_doc",
+                "extract_dataframe_stats",
+                "delegate_to_data_analyst",
+            }:
+                observation = {
+                    "ok": False,
+                    "tool": model_step.action,
+                    "error": {
+                        "type": "TimeoutGuard",
+                        "message": "Near timeout: high-cost exploratory action is blocked; finalize quickly.",
+                    },
+                    "meta": {"llm_elapsed_seconds": llm_elapsed},
+                }
+                self._reducer.record_step(
+                    rt,
+                    thought=model_step.thought,
+                    action=model_step.action,
+                    action_input=model_step.action_input,
+                    raw_response=current_raw,
+                    observation=observation,
+                    ok=False,
+                    llm_elapsed=llm_elapsed,
+                    tool_elapsed=None,
+                )
+                gs["rt"] = rt.to_langgraph_dict()
+                return gs
+
             tool_started_at = perf_counter()
             tool_result = self.tools.execute(task, model_step.action, model_step.action_input)
             tool_elapsed = round(perf_counter() - tool_started_at, 6)
@@ -246,6 +324,13 @@ class LangGraphReActAgent:
                 tool_elapsed=tool_elapsed,
             )
             gs["rt"] = rt.to_langgraph_dict()
+
+            if rt.force_finalize and rt.answer is None and rt.pending_answer is None:
+                reason = rt.force_finalize_reason or "Force finalize triggered."
+                rt.answer = {"columns": ["error"], "rows": [[reason]]}
+                gs["stop_reason"] = "force_finalize"
+                gs["rt"] = rt.to_langgraph_dict()
+                return gs
 
             if tool_result.is_terminal:
                 # Store answer as serializable dict to pending_answer for review
@@ -284,6 +369,13 @@ class LangGraphReActAgent:
                 tool_elapsed=None,
             )
             gs["rt"] = rt.to_langgraph_dict()
+
+            if rt.force_finalize and rt.answer is None and rt.pending_answer is None:
+                reason = rt.force_finalize_reason or "Force finalize triggered."
+                rt.answer = {"columns": ["error"], "rows": [[reason]]}
+                gs["stop_reason"] = "force_finalize"
+                gs["rt"] = rt.to_langgraph_dict()
+                return gs
 
         if len(rt.steps) >= self.config.max_steps:
             rt.failure_reason = "Agent did not submit an answer within max_steps."
@@ -393,6 +485,8 @@ class LangGraphReActAgent:
         rt = coerce_state(gs.get("rt") or {})
         if rt.answer is not None:
             return "end"
+        if rt.force_finalize:
+            return "end"
         if getattr(rt, "pending_answer", None) is not None:
             return "review"
         if rt.failure_reason is not None:
@@ -428,6 +522,7 @@ class LangGraphReActAgent:
             prompt_window_steps=self.config.history_max_steps,
             steps_since_compress=0,
         )
+        init_rt.__dict__["task_started_at"] = perf_counter()
         result = self._app.invoke({"task": task, "system_prompt": self.system_prompt, "rt": init_rt.to_langgraph_dict()})
 
         rt = coerce_state(result.get("rt") or {})

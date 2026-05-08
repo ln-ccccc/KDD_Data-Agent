@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from data_agent_baseline.benchmark.schema import PublicTask
+from data_agent_baseline.runtime.cache import SCHEMA_CACHE, context_namespace, file_fingerprint
 
 # convert relative path to absolute path in context dir 【LLM对相对路径没有稳定语义锚点，容易漂移】
 # 【https://www.anthropic.com/engineering/building-effective-agents?utm_source=chatgpt.com】
@@ -104,6 +105,12 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
 
     path = resolve_context_path(task, relative_path)
     ext = path.suffix.lower()
+    namespace = context_namespace(task.context_dir)
+    fp = file_fingerprint(path)
+    schema_cache_key = f"schema:{fp}"
+    cached = SCHEMA_CACHE.get(schema_cache_key)
+    if isinstance(cached, dict):
+        return dict(cached)
 
     if ext in [".csv", ".parquet", ".json", ".xlsx", ".xls"]:
         # Use DuckDB DESCRIBE to get a clean schema
@@ -164,20 +171,26 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
             # Add the new column to headers
             schema_cols.append("Distinct_Samples")
             
-            return {
+            result = {
                 "path": relative_path,
                 "schema": enhanced_schema,
                 "columns": schema_cols,
                 "note": "Schema obtained via DuckDB DESCRIBE. Categorical columns include distinct value samples to help you formulate exact WHERE clauses without guessing."
             }
+            SCHEMA_CACHE.set(schema_cache_key, result, namespace=namespace)
+            return result
         else:
-            return {
+            result = {
                 "path": relative_path,
                 "error": res.get("error"),
                 "note": "Failed to get schema via DuckDB."
             }
+            SCHEMA_CACHE.set(schema_cache_key, result, namespace=namespace)
+            return result
 
-    return {
+    result = {
         "path": relative_path,
         "error": f"Unsupported file extension for schema extraction: {ext}",
     }
+    SCHEMA_CACHE.set(schema_cache_key, result, namespace=namespace)
+    return result
