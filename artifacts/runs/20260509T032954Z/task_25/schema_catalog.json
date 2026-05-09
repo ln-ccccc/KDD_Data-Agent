@@ -1,0 +1,133 @@
+{
+  "task_id": "task_25",
+  "question": "Which event has the lowest cost?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_25/context",
+  "tables": [
+    {
+      "source_file": "json/expense.json",
+      "source_type": "json",
+      "table_name": "expense",
+      "columns": [
+        {
+          "name": "expense_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recpalswlVDIbuLLu', 'recILV3eykJuWc489', 'recIudsuLiDpzK8Io', 'recPjEDS0hBq1saTk', 'recSWyiU07aPjfFYa', 'rec1oMgNFt7Y0G40x', 'recS4pFu5y7MIT4ar', 'recJnyr7Z1CjAlHgA', 'recc708ab2lufAlNR', 'reckyNexGnIVMiNGn']"
+        },
+        {
+          "name": "expense_description",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Water, cookies, chips', 'Alumni Glass', 'Parking', 'Club shirts', 'Bakery - Donuts, muffins', 'Water, Veggie tray, supplies', 'Pizza', 'Posters', 'Travel Mug', 'Post Cards, Posters']"
+        },
+        {
+          "name": "expense_date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "cost",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "approved",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['true']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recD078PnS3x2doBe', 'rec4BLdZHS2Blfp4v', 'recro8T1MPMwRadVH']"
+        },
+        {
+          "name": "link_to_budget",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec1bG6HSft7XIvTP', 'recy8KY5bUdzF81vv', 'recca5tkvdQgoLKZz', 'recMc8TbR76rmUSHG', 'recexNBMuCY9emh6y', 'rectLnkwVg4AIgY0R', 'recJOc7f9KgpgJm5q', 'recwXIiKoBMjXJsGZ', 'recTUGXxhTaFZ2qkg', 'recr60T1tLsfdICV8']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/event.json",
+      "source_type": "json",
+      "table_name": "event",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec0dZPcWXF0QjNnE', 'recJ4Witp9tpjaugn', 'recWJFyajeK4jCNYz', 'recmbOVHSyzXQZpQr', 'recsgSUqFCJqekzL5', 'recJcyZUsdhK2ukaY', 'recQym2V7XkIEFFnr', 'rec0Si5cQ4rJRVzd6', 'recmvq6ZguK4MVmvx', 'reczhS8wix6Kzbp9P']"
+        },
+        {
+          "name": "event_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['October Speaker', 'November Speaker', 'March Speaker', 'October Meeting', 'Community Theater', 'Baseball game', 'Graffiti Removal', 'Yearly Wrap-up', \"Women's Lacrosse\", 'Officers meeting - February']"
+        },
+        {
+          "name": "event_date",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['2020-01-14T09:30:00', '2019-10-08T09:30:00', '2020-04-21T12:00:00', '2020-03-24T12:00:00', '2019-09-19T02:00:00', '2020-02-11T09:30:00', '2020-02-20T02:00:00', '2019-10-08T12:00:00', '2019-10-24T13:00:00', '2019-11-21T02:00:00']"
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Election', 'Game', 'Budget', 'Meeting', 'Guest Speaker', 'Social', 'Community Service', 'Registration']"
+        },
+        {
+          "name": "notes",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Volunteer opportunity to remove graffiti in town.', 'Semester social event. Optional attendance.', 'Volunteer opportunity to sort donations for distri...', 'All active members can vote for new officers betwe...', 'Volunteer opportunity to pack backpacks for underp...', 'Monthly officers meeting', 'Attend school teams Lacrosse game as a group.', \"Attend Women's soccer game as a group.\", 'Attend school football game as a group.', 'Volunteer opportunity to help paint new home.']"
+        },
+        {
+          "name": "location",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Various locations', '1308 106th Ave.', '900 E. Washington St.', 'Campus Common', 'Campus Baseball Stadium', 'MU 215', 'Campus Football stadium', '45 N. Smith St.', 'Conference Room BA 452', '258 S. Maple St.']"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Planning', 'Closed', 'Open']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/budget.csv",
+      "source_type": "csv",
+      "table_name": "budget",
+      "columns": [
+        {
+          "name": "budget_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recKjd7dcURsmP0KY', 'recTUGXxhTaFZ2qkg', 'recUmDNVie8sfU6UR', 'recfbLRzfFbWypDEs', 'recr60T1tLsfdICV8', 'recwXIiKoBMjXJsGZ', 'recXGXXRruuAY1JNN', 'recjpAeh0324DqHtB', 'rec0QmEc3cSQFQ6V2', 'rec1z6ISJU2HdIsVm']"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Parking', 'Club T-Shirts', 'Speaker Gifts', 'Food', 'Advertisement']"
+        },
+        {
+          "name": "spent",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "remaining",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "amount",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['25', '55', '350', '155', '10', '20', '150', '75', '300']"
+        },
+        {
+          "name": "event_status",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Closed', 'Open', 'Planning']"
+        },
+        {
+          "name": "link_to_event",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recI43CzsZ0Q625ma', 'rec180D2MI4EpckHy', 'rec2mJrCofveboaz6', 'recLrY8kyOR1PcZeF', 'recggMW2eyCYceNcy', 'recEVTik3MlqbvLFi', 'recerGvehRmgO0obW', 'recykdvf4LgsyA3wZ', 'rec0akZnLLpGUloLH', 'recwM7GMBSLDlb1Ix']"
+        }
+      ]
+    }
+  ]
+}

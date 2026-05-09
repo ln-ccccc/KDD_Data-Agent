@@ -1,0 +1,145 @@
+{
+  "task_id": "task_38",
+  "question": "List all the withdrawals in cash transactions that the client with the id 3356 makes.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_38/context",
+  "tables": [
+    {
+      "source_file": "json/client.json",
+      "source_type": "json",
+      "table_name": "client",
+      "columns": [
+        {
+          "name": "client_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['5', '9', '14', '17', '30', '44', '65', '75', '79', '114']"
+        },
+        {
+          "name": "gender",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['M', 'F']"
+        },
+        {
+          "name": "birth_date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "district_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['16', '67', '26', '55', '11', '54', '64', '37', '35', '62']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/account.json",
+      "source_type": "json",
+      "table_name": "account",
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "district_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['70', '42', '15', '52', '22', '32', '31', '67', '16', '26']"
+        },
+        {
+          "name": "frequency",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['POPLATEK MESICNE', 'POPLATEK TYDNE', 'POPLATEK PO OBRATU']"
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/disp.csv",
+      "source_type": "csv",
+      "table_name": "disp",
+      "columns": [
+        {
+          "name": "disp_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "client_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['5', '9', '14', '17', '30', '44', '65', '75', '79', '114']"
+        },
+        {
+          "name": "account_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['OWNER', 'DISPONENT']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/trans.csv",
+      "source_type": "csv",
+      "table_name": "trans",
+      "columns": [
+        {
+          "name": "trans_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['453121', '453133', '453146', '453154', '453166', '453175', '453202', '453356', '453364', '453377']"
+        },
+        {
+          "name": "account_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['786', '789', '829', '836', '918', '933', '939', '952', '960', '969']"
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['VYBER', 'PRIJEM', 'VYDAJ']"
+        },
+        {
+          "name": "operation",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['VKLAD', 'VYBER', 'PREVOD NA UCET', 'PREVOD Z UCTU', 'VYBER KARTOU']"
+        },
+        {
+          "name": "amount",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['3700', '3400', '13145', '6900', '1300', '9400', '2760', '5600', '2320', '3920']"
+        },
+        {
+          "name": "balance",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['37556', '40771', '60776', '24238', '18712', '16853', '15085', '17443', '33490', '22236']"
+        },
+        {
+          "name": "k_symbol",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['DUCHOD', 'SANKC. UROK', 'SIPO', 'POJISTNE', 'SLUZBY', 'UVER', 'UROK', ' ']"
+        },
+        {
+          "name": "bank",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['UV', 'MN', 'ST', 'KL', 'GH', 'YZ', 'CD', 'QR', 'IJ', 'EF']"
+        },
+        {
+          "name": "account",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '47281622', '70286303', '95864551', '41519075', '93358599', '85781967', '8011526', '51452183', '95404332']"
+        }
+      ]
+    }
+  ]
+}

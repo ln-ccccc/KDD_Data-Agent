@@ -1,2 +1,0 @@
-Error
-"Unable to determine 'commander' format and 'legal' status from the provided database schema and content. The 'format' and 'status' columns mentioned in knowledge.md do not exist in the 'cards' table, and attempts to find this information in other text-based columns were unsuccessful. Therefore, the percentage cannot be calculated."

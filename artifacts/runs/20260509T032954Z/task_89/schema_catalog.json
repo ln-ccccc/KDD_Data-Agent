@@ -1,0 +1,151 @@
+{
+  "task_id": "task_89",
+  "question": "What's the finish time for the driver who ranked second in 2008's Chinese Grand Prix?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_89/context",
+  "tables": [
+    {
+      "source_file": "json/races.json",
+      "source_type": "json",
+      "table_name": "races",
+      "columns": [
+        {
+          "name": "raceId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "year",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2009', '1986', '1976', '1962', '1960', '1951', '1994', '1991', '1983', '1954']"
+        },
+        {
+          "name": "round",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '21', '4', '12', '20', '2', '5', '9', '14', '17']"
+        },
+        {
+          "name": "circuitId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '17', '5', '9', '14', '30']"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Chinese Grand Prix', 'Italian Grand Prix', 'United States Grand Prix', 'South African Grand Prix', 'Detroit Grand Prix', 'Hungarian Grand Prix', 'Indian Grand Prix', 'Pescara Grand Prix', 'Turkish Grand Prix', 'Mexican Grand Prix']"
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "time",
+          "type": "TIME",
+          "sample_values_str": ""
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['http://en.wikipedia.org/wiki/2009_British_Grand_Pr...', 'http://en.wikipedia.org/wiki/2007_Spanish_Grand_Pr...', 'http://en.wikipedia.org/wiki/2007_Turkish_Grand_Pr...', 'http://en.wikipedia.org/wiki/2006_Chinese_Grand_Pr...', 'http://en.wikipedia.org/wiki/2006_Brazilian_Grand_...', 'http://en.wikipedia.org/wiki/2005_Malaysian_Grand_...', 'http://en.wikipedia.org/wiki/2003_Japanese_Grand_P...', 'http://en.wikipedia.org/wiki/2002_Spanish_Grand_Pr...', 'http://en.wikipedia.org/wiki/2002_French_Grand_Pri...', 'http://en.wikipedia.org/wiki/2001_San_Marino_Grand...']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/results.csv",
+      "source_type": "csv",
+      "table_name": "results",
+      "columns": [
+        {
+          "name": "resultId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "raceId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['26', '55', '67', '83', '91', '110', '118', '122', '134', '155']"
+        },
+        {
+          "name": "driverId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['393', '401', '418', '432', '459', '467', '476', '508', '509', '518']"
+        },
+        {
+          "name": "constructorId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '182', '67', '83', '91', '110', '118']"
+        },
+        {
+          "name": "number",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '0', '55', '83', '67', '110', '118', '122']"
+        },
+        {
+          "name": "grid",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '0', '26', '5', '17', '14', '9', '30', '2']"
+        },
+        {
+          "name": "position",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '7', '27', '1', '4', '23', '24', '33']"
+        },
+        {
+          "name": "positionText",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['F', '11', 'E', '24', '2', '27', '30', '31', 'D', '14']"
+        },
+        {
+          "name": "positionOrder",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '10', '18', '29', '34', '21', '25', '4']"
+        },
+        {
+          "name": "points",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "laps",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['55', '0', '67', '16', '11', '26', '83', '110', '91', '134']"
+        },
+        {
+          "name": "time",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['+45.473', '+23.352', '+47.775', '+30.512', '+58.065', '1:37:27.067', '+23.903', '+29.912', '+2.957', '+10.268']"
+        },
+        {
+          "name": "milliseconds",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['5690616', '5708630', '5470309', '7242742', '5838347', '5564783', '5949440', '5847067', '5917474', '5266382']"
+        },
+        {
+          "name": "fastestLap",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['55', '11', '16', '67', '26', '22', '15', '52', '31', '32']"
+        },
+        {
+          "name": "rank",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['1', '10', '18', '5', '14', '9', '17', '13', '8', '19']"
+        },
+        {
+          "name": "fastestLapTime",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['1:29.558', '1:35.921', '1:36.693', '1:36.782', '1:35.333', '1:22.017', '1:22.106', '1:24.617', '1:26.666', '1:28.180']"
+        },
+        {
+          "name": "fastestLapSpeed",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "statusId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['35', '37', '54', '62', '64', '85', '96', '11', '26', '55']"
+        }
+      ]
+    }
+  ]
+}

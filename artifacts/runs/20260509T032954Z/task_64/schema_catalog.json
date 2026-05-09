@@ -1,0 +1,108 @@
+{
+  "task_id": "task_64",
+  "question": "Please list all the superpowers of 3-D Man.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_64/context",
+  "tables": [
+    {
+      "source_file": "json/superhero.json",
+      "source_type": "json",
+      "table_name": "superhero",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['35', '37', '54', '62', '64', '85', '96', '165', '168', '189']"
+        },
+        {
+          "name": "superhero_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Anti-Venom', 'Aqualad', 'Atom', 'Batgirl II', 'Black Abbott', 'Black Lightning', 'Captain Mar-vell', 'Citizen Steel', 'Darkstar', 'Deadshot']"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['-', 'En Sabah Nur', 'Jamie Wells Sommers', 'Donald Gill', 'Theodore Kord', 'Sethaniel Brundle', 'William Tockman', 'Willis Stryker', 'Maxwell Dillon', 'Angelica Jones']"
+        },
+        {
+          "name": "gender_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['3', '1', '2']"
+        },
+        {
+          "name": "eye_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['1', '34', '12', '7', '35', '28', '2', '9', '14', '30']"
+        },
+        {
+          "name": "hair_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['1', '11', '26', '31', '22', '9', '14', '17', '5', '13']"
+        },
+        {
+          "name": "skin_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['31', '22', '13', '8', '19', '28', '12', '20', '7', '21']"
+        },
+        {
+          "name": "race_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['55', '26', '16', '11', '50', '37', '35', '54', '5', '44']"
+        },
+        {
+          "name": "publisher_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '22', '11', '16', '13', '8', '19', '25', '21', '3']"
+        },
+        {
+          "name": "alignment_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '1', '3']"
+        },
+        {
+          "name": "height_cm",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['191', '267', '71', '279', '173', '1520', '180', '183', '163', '185']"
+        },
+        {
+          "name": "weight_kg",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['88', '101', '63', '270', '71', '191', '117', '320', '443', '39']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/hero_power.csv",
+      "source_type": "csv",
+      "table_name": "hero_power",
+      "columns": [
+        {
+          "name": "hero_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '22', '31', '32', '52', '92', '97', '132', '163', '166']"
+        },
+        {
+          "name": "power_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['26', '16', '11', '91', '118', '122', '134', '55', '83', '67']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/superpower.csv",
+      "source_type": "csv",
+      "table_name": "superpower",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['10', '18', '29', '34', '47', '49', '93', '131', '137', '156']"
+        },
+        {
+          "name": "power_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Audio Control', 'Animal Oriented Powers', 'Clairvoyance', 'Immortality', 'Reflexes', 'Substance Secretion', 'Enhanced Hearing', 'Enhanced Sight', 'Hair Manipulation', 'Vitakinesis']"
+        }
+      ]
+    }
+  ]
+}

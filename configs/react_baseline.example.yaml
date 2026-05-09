@@ -3,8 +3,8 @@ dataset:
 
 agent:
   model: gemini-2.5-flash
-  api_base: YOUR_API_BASE_URL
-  api_key: YOUR_API_KEY
+  api_base: https://ai-gateway-internal.dp.tech
+  api_key: sk-RPJpeWvTc8dZYs-g29egqg
   max_steps: 64
   temperature: 0.0
   mode: hybrid  # react | hybrid
@@ -15,13 +15,13 @@ agent:
     max_retries: 2
     backoff_seconds: 0.8
   # Context compression (to prevent token explosion)
-  max_prompt_chars: 24000
+  max_prompt_chars: 240000
   compress_trigger_steps: 12
   history_max_steps: 16
 
 run:
   output_dir: artifacts/runs
   run_id:
-  max_workers: 4
+  max_workers: 1
   task_timeout_seconds: 600
   trace_level: standard  # minimal | standard | verbose

@@ -1,0 +1,66 @@
+{
+  "task_id": "task_24",
+  "question": "How many members attended the \"Women's Soccer\" event?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_24/context",
+  "tables": [
+    {
+      "source_file": "json/event.json",
+      "source_type": "json",
+      "table_name": "event",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec0Si5cQ4rJRVzd6', 'recmvq6ZguK4MVmvx', 'reczhS8wix6Kzbp9P', 'recI43CzsZ0Q625ma', 'receBpqENOUMQYsIP', 'recIuIXdbLe5j5vCA', 'rectmaqcYOtnxnRiB', 'rec0akZnLLpGUloLH', 'rec2N69DMcrqN9PJC', 'recEVTik3MlqbvLFi']"
+        },
+        {
+          "name": "event_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['March Meeting', 'Spring Elections', 'Officers meeting - March', 'January Meeting', 'Lacrosse game', 'February Meeting', 'Food Bank', 'Yearly Kickoff', 'September Meeting', \"Kid's Care\"]"
+        },
+        {
+          "name": "event_date",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['2019-10-24T13:00:00', '2019-11-21T02:00:00', '2020-01-14T09:30:00', '2019-10-08T09:30:00', '2019-11-05T09:30:00', '2020-01-14T12:00:00', '2019-10-08T12:00:00', '2019-10-05T12:00:00', '2019-10-22T12:00:00', '2020-02-11T09:30:00']"
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Election', 'Game', 'Social', 'Community Service', 'Meeting', 'Budget', 'Guest Speaker', 'Registration']"
+        },
+        {
+          "name": "notes",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Semester social event. Optional attendance.', 'Volunteer opportunity to sort donations for distri...', 'Attend school teams Lacrosse game as a group.', 'Attend school teams baseball game as a group.', \"Attend school Woman's Lacrosse game as a group.\", 'Officers and Budget Committee only', 'Members and alumni can attend a community theater ...', \"Attend Women's soccer game as a group.\", 'Attend school football game as a group.', 'Volunteer opportunity to help paint new home.']"
+        },
+        {
+          "name": "location",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Campus Soccer/Lacrosse stadium', 'Conference Room BA 452', 'Campus Baseball Stadium', '45 N. Smith St.', 'MU 215', 'Campus Football stadium', '258 S. Maple St.', '100 W. Main Street', 'Various locations', '1308 106th Ave.']"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Closed', 'Planning', 'Open']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/attendance.csv",
+      "source_type": "csv",
+      "table_name": "attendance",
+      "columns": [
+        {
+          "name": "link_to_event",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recI43CzsZ0Q625ma', 'reczhS8wix6Kzbp9P', 'rec2N69DMcrqN9PJC', 'recEVTik3MlqbvLFi', 'recykdvf4LgsyA3wZ', 'recIuIXdbLe5j5vCA', 'recmbOVHSyzXQZpQr', 'recsgSUqFCJqekzL5', 'recggMW2eyCYceNcy', 'recoVo6dFSzG1ypX7']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recUdRhbhcEO1Hk5r', 'recjHj4BS5A541n9v', 'recTjHY5xXhvkCdVT', 'recro8T1MPMwRadVH', 'recWh2lJVOT6HjChK', 'recEFd8s6pkrTt4Pz', 'recQaxyXBQG5BBtD0', 'recL94zpn6Xh6kQii', 'rec280Sk7o31iG0Tx', 'rec28ORZgcm1dtqBZ']"
+        }
+      ]
+    }
+  ]
+}

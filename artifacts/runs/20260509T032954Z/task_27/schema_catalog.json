@@ -1,0 +1,101 @@
+{
+  "task_id": "task_27",
+  "question": "List out the full name and total cost that member id \"rec4BLdZHS2Blfp4v\" incurred?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_27/context",
+  "tables": [
+    {
+      "source_file": "json/expense.json",
+      "source_type": "json",
+      "table_name": "expense",
+      "columns": [
+        {
+          "name": "expense_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recJnyr7Z1CjAlHgA', 'reccYcUpPCTpMXUbB', 'recelGWS0AxwSMQwl', 'recc708ab2lufAlNR', 'reckyNexGnIVMiNGn', 'rec1oMgNFt7Y0G40x', 'recOMqTkoXlx8RFt4', 'recoMvesC2XeccvpV', 'rec017x6R3hQqkLAo', 'recNQk5EsFhOWLl4R']"
+        },
+        {
+          "name": "expense_description",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Alumni Glass', 'Travel Mug', 'Water, cookies, chips', 'Post Cards, Posters', 'Water, Cookies', 'Club shirts', 'Bakery - Donuts, muffins', 'Water, chips, cookies', 'Pizza', 'Posters']"
+        },
+        {
+          "name": "expense_date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "cost",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "approved",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['true']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec4BLdZHS2Blfp4v', 'recro8T1MPMwRadVH', 'recD078PnS3x2doBe']"
+        },
+        {
+          "name": "link_to_budget",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recwXIiKoBMjXJsGZ', 'recTUGXxhTaFZ2qkg', 'recr60T1tLsfdICV8', 'recKjd7dcURsmP0KY', 'recZAjcliIUo4BCKW', 'recRQdaiKCxFAlPCy', 'recsI0IzpUuxl2bPh', 'recN9yY7okNrFps0Y', 'recvKTAWAFKkVNnXQ', 'recZdw5TjWrRTj4kp']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/member.json",
+      "source_type": "json",
+      "table_name": "member",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recD078PnS3x2doBe', 'reco0mr8dXTgs5wWA', 'recsTO4OZIF9rbubk', 'recjHj4BS5A541n9v', 'recEymrwCUKxiiosI', 'recJMazpPVexyFYTc', 'recL4aEZBZoPk9NYx', 'recP6DJPyi5donvXL', 'recVsoJJHFI8bgtfw', 'recttfySfQnYb68u3']"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Casey', 'Carlo', 'Phillip', 'Rafi', 'Brent', 'Tyler', 'Elijah', 'Connor', 'Vincent', 'Keaton']"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Mclean', 'Gerke', 'Ramsey', 'Guidi', 'Smith', 'Nicholson', 'Sanders', 'Woodard', 'Balentine', 'Mccray']"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['amy.firth@lpu.edu', 'randy.woodard@lpu.edu', 'phillip.cullen@lpu.edu', 'matt.snay@lpu.edu', 'casey.mason@lpu.edu', 'luisa.guidi@lpu.edu', 'trent.smith@lpu.edu', 'katy.balentine@lpu.edu', 'mccauley.nash@lpu.edu', 'maya.mclean@lpu.edu']"
+        },
+        {
+          "name": "position",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Treasurer', 'President', 'Inactive', 'Member', 'Vice President', 'Secretary']"
+        },
+        {
+          "name": "t_shirt_size",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Small', 'Large', 'X-Large', 'Medium']"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['768-555-2323', '435-555-8128', '933-555-4147', '954-555-6240', '724-555-5721', '(701) 932-1903', '676-555-7843', '801-344-2203', '716-555-3845', '809-555-3360']"
+        },
+        {
+          "name": "zip",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['8861', '29440', '48236', '84003', '37110', '98290', '55108', '8021', '60559', '47905']"
+        },
+        {
+          "name": "link_to_major",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recxRBSgVYeSEGvyo', 'reclQ8BVvj2w4cQ4V', 'recXLfKqMqRArcKNg', 'rec09LedkREyskCNv', 'recKJHO1P6ZC5m567', 'recR2UFppcwddeAkz', 'recxK3MHQFbR9J5uO', 'recRA9IxLl6eKPsJX', 'recT9LoDnC8ZvdPqM', 'recVNDNQrJxsXPFXa']"
+        }
+      ]
+    }
+  ]
+}

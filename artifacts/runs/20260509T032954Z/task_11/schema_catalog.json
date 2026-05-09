@@ -1,0 +1,121 @@
+{
+  "task_id": "task_11",
+  "question": "For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_11/context",
+  "tables": [
+    {
+      "source_file": "json/Examination.json",
+      "source_type": "json",
+      "table_name": "Examination",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['14872', '108788', '133382', '174116', '2503320', '2533270', '2899260', '2999160', '3182520', '3605340']"
+        },
+        {
+          "name": "Examination Date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "aCL IgG",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "aCL IgM",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "ANA",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '16', '256', '4', '4096', '1024', '64', '4094']"
+        },
+        {
+          "name": "ANA Pattern",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['D,P,S', 'D,P', 'P,S', 'S', 'D,S', 'P.D', 'D', 'P', 'P.S', 'S,P']"
+        },
+        {
+          "name": "aCL IgA",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '11', '67', '26', '16', '32', '15', '22', '31', '255']"
+        },
+        {
+          "name": "Diagnosis",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['SjS', 'MCTD, preg', 'SjS susp', 'SLE, SjS, APS', 'SLE, Depression', 'SLE, AMI', 'SjS(CNS)', 'Hashimoto, arthralgia', 'EB virus infection', 'PSS, SjS, Preg']"
+        },
+        {
+          "name": "KCT",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['-', '+']"
+        },
+        {
+          "name": "RVVT",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['-', '+']"
+        },
+        {
+          "name": "LAC",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['-', '+']"
+        },
+        {
+          "name": "Symptoms",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['abortion', 'thrombophlebitis', 'leg ulcer', 'thrombosis of lower extremities', 'CNS lupus', 'CNS, CVA, Lung emboli', 'CMS lupus', 'multiple thrombosis', 'öxô«û¼îîÉ\\x14, ë¦ÄêÉÈû¼îîÉ\\x14', 'thrombocytepenia']"
+        },
+        {
+          "name": "Thrombosis",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '1', '3', '2']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/Patient.json",
+      "source_type": "json",
+      "table_name": "Patient",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2110', '102490', '138938', '213279', '233604', '299839', '395524', '424396', '549080', '746582']"
+        },
+        {
+          "name": "SEX",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['', 'M', 'F']"
+        },
+        {
+          "name": "Birthday",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "Description",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "First Date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "Admission",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['-', '+', '+(', '']"
+        },
+        {
+          "name": "Diagnosis",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['RA, SLE susp', \"Raynaud's phenomenon\", 'SJS', 'BEHCET (', 'RA,SJS', 'PNc', 'PM, SJS', 'SJS, ITP', 'MCTD, SLE', 'PM\\x1dPSS\\x1dRA']"
+        }
+      ]
+    }
+  ]
+}

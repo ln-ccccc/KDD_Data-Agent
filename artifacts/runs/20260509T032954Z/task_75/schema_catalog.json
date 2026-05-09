@@ -1,0 +1,111 @@
+{
+  "task_id": "task_75",
+  "question": "What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_75/context",
+  "tables": [
+    {
+      "source_file": "json/drivers.json",
+      "source_type": "json",
+      "table_name": "drivers",
+      "columns": [
+        {
+          "name": "driverId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "driverRef",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['montoya', 'alesi', 'mcnish', 'sarrazin', 'mansell', 'boutsen', 'corrado_fabi', 'villota', 'lees', 'brambilla']"
+        },
+        {
+          "name": "number",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['22', '31', '99', '25', '21', '11', '26', '55', '6', '3']"
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['HEI', 'ROS', 'ALO', 'RAI', 'DAV', 'FIS', 'YAM', 'DOO', 'VER', 'VDG']"
+        },
+        {
+          "name": "forename",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Kimi', 'Ralph', 'Nicola', 'Andrea', 'Giovanni', 'Roberto', 'Pierluigi', 'Gabriele', 'Paul', 'Marco']"
+        },
+        {
+          "name": "surname",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Massa', 'Wilson', 'Enge', 'Martini', 'Noda', 'van de Poele', 'Lammers', 'Bailey', 'Giacomelli', 'Rothengatter']"
+        },
+        {
+          "name": "dob",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "nationality",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Finnish', 'French', 'Austrian', 'Portuguese', 'Monegasque', 'American-Italian', 'Uruguayan', 'German', 'Argentine', 'Swiss']"
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['http://en.wikipedia.org/wiki/Nico_Rosberg', 'http://en.wikipedia.org/wiki/Jarno_Trulli', 'http://en.wikipedia.org/wiki/Ralf_Schumacher', 'http://en.wikipedia.org/wiki/Markus_Winkelhock', 'http://en.wikipedia.org/wiki/Jos_Verstappen', 'http://en.wikipedia.org/wiki/Jean_Alesi', 'http://en.wikipedia.org/wiki/Gast%C3%B3n_Mazzacane', 'http://en.wikipedia.org/wiki/Mark_Blundell', 'http://en.wikipedia.org/wiki/Gregor_Foitek', 'http://en.wikipedia.org/wiki/Johnny_Dumfries']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/qualifying.csv",
+      "source_type": "csv",
+      "table_name": "qualifying",
+      "columns": [
+        {
+          "name": "qualifyId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "raceId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['26', '55', '67', '83', '244', '254', '259', '268', '11', '16']"
+        },
+        {
+          "name": "driverId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['35', '37', '62', '64', '85', '96', '823', '15', '22', '31']"
+        },
+        {
+          "name": "constructorId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '205', '9', '5', '14', '17', '30', '8', '13']"
+        },
+        {
+          "name": "number",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['22', '15', '31', '32', '4', '23', '24', '33', '45', '40']"
+        },
+        {
+          "name": "position",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '15', '22', '12', '20', '8', '13', '19']"
+        },
+        {
+          "name": "q1",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['1:26.572', '1:33.562', '1:21.494', '1:26.457', '1:27.107', '1:27.568', '1:15.977', '1:16.955', '1:18.321', '1:17.638']"
+        },
+        {
+          "name": "q2",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['1:25.187', '1:26.063', '1:34.412', '1:34.188', '1:27.607', '1:27.298', '1:27.412', '1:19.597', '1:14.747', '1:15.481']"
+        },
+        {
+          "name": "q3",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['1:27.079', '1:36.709', '1:37.009', '1:28.422', '1:16.548', '1:17.426', '1:39.937', '1:47.678', '1:12.917', '1:26.493']"
+        }
+      ]
+    }
+  ]
+}

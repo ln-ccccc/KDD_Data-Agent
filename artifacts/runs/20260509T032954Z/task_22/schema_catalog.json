@@ -1,0 +1,148 @@
+{
+  "task_id": "task_22",
+  "question": "State the date Connor Hilton paid his/her dues.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_22/context",
+  "tables": [
+    {
+      "source_file": "members_temp.csv",
+      "source_type": "csv",
+      "table_name": "members_temp",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recUdRhbhcEO1Hk5r', 'rec4BLdZHS2Blfp4v', 'recZN8afUWlE5fZHG', 'rec2a03QXbFQAUZ7X', 'recxBj3tjKTGHqucS', 'recEymrwCUKxiiosI', 'recJMazpPVexyFYTc', 'recL4aEZBZoPk9NYx', 'recP6DJPyi5donvXL', 'recVsoJJHFI8bgtfw']"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Carlo', 'Phillip', 'Rafi', 'Brent', 'Grant', 'Annabella', 'Adele', 'Maya', 'Casey', 'Katy']"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Nielson', 'Jacobs', 'Mckee', \"O'Gallagher\", 'Mclean', 'Gerke', 'Ramsey', 'Harrison', 'Ing', 'Gilmour']"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['angela.sanders@lpu.edu', 'carlo.jacobs@lpu.edu', 'vincent.ratcliffe@lpu.edu', 'brent.thomason@lpu.edu', 'tyler.hewitt@lpu.edu', 'sacha.harrison@lpu.edu', 'rafi.mckee@lpu.edu', \"dean.o'reilly@lpu.edu\", 'luisa.guidi@lpu.edu', 'trent.smith@lpu.edu']"
+        },
+        {
+          "name": "position",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['President', 'Treasurer', 'Secretary', 'Member', 'Vice President', 'Inactive']"
+        },
+        {
+          "name": "t_shirt_size",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Small', 'X-Large', 'Medium', 'Large']"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['716-555-3845', '809-555-3360', '435-555-8128', '954-555-6240', '724-555-5721', '466-555-3483', '840-555-4781', '109-555-7016', '887-555-7733', '942-555-1132']"
+        },
+        {
+          "name": "zip",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['8861', '21801', '28092', '60047', '21042', '10002', '22101', '29440', '48236', '47711']"
+        },
+        {
+          "name": "link_to_major",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recXLfKqMqRArcKNg', 'recaJdSK83k6ekRJL', 'recxK3MHQFbR9J5uO', 'recRA9IxLl6eKPsJX', 'recT9LoDnC8ZvdPqM', 'recVNDNQrJxsXPFXa', 'recxRBSgVYeSEGvyo', 'reclQ8BVvj2w4cQ4V', 'recIzqYuV3wMONTgB', 'recVeoVlIsO6k6iUM']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/member.json",
+      "source_type": "json",
+      "table_name": "member",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recUdRhbhcEO1Hk5r', 'rec2a03QXbFQAUZ7X', 'recxBj3tjKTGHqucS', 'rec4O9rmGnLx3j8vt', 'rec75vvFxgYtHmqxY', 'recttfySfQnYb68u3', 'recT92PyyZCGq1R68', 'recf4UKTfipCzgcSA', 'recuSfhAZIlKba4s2', 'rec280Sk7o31iG0Tx']"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Emily', 'Carlo', 'Phillip', 'Rafi', 'Brent', 'Casey', 'Sherri', 'Grant', 'Annabella', 'Katy']"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Mclean', 'Gerke', 'Ramsey', 'Mason', 'Ratcliffe', 'Guidi', 'Smith', 'Nicholson', 'Sanders', 'Woodard']"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['randy.woodard@lpu.edu', 'phillip.cullen@lpu.edu', 'matt.snay@lpu.edu', 'casey.mason@lpu.edu', 'luisa.guidi@lpu.edu', 'trent.smith@lpu.edu', 'katy.balentine@lpu.edu', 'mccauley.nash@lpu.edu', 'maya.mclean@lpu.edu', 'keith.dunlap@lpu.edu']"
+        },
+        {
+          "name": "position",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Member', 'Vice President', 'Inactive', 'Secretary', 'President', 'Treasurer']"
+        },
+        {
+          "name": "t_shirt_size",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Small', 'Large', 'Medium', 'X-Large']"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['716-555-3845', '809-555-3360', '540-555-4152', '928-555-2577', '905-555-5035', '397-555-3444', '176-555-6720', '435-555-8128', '260-555-4328', '951-555-6777']"
+        },
+        {
+          "name": "zip",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['28092', '60047', '76901', '27511', '12203', '79106', '35640', '46123', '21784', '92307']"
+        },
+        {
+          "name": "link_to_major",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recxRBSgVYeSEGvyo', 'reclQ8BVvj2w4cQ4V', 'recaJdSK83k6ekRJL', 'recKJHO1P6ZC5m567', 'recdIBgeU38UbV2sy', 'rectez0Ce1okUhv8w', 'recVYIFAwjT91pnv7', 'recIzqYuV3wMONTgB', 'recVeoVlIsO6k6iUM', 'rec09LedkREyskCNv']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/income.csv",
+      "source_type": "csv",
+      "table_name": "income",
+      "columns": [
+        {
+          "name": "income_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recXFdA0P6QkxSqg8', 'recqHWeEomHX3ytUe', 'recCRWMfFqifuKMc6', 'reccMyjWLJhKIWSeJ', 'rec0s9ZrO15zhzUeE', 'rec7f5XMQZexgtQJo', 'recMCFQxAiJXxrbsG', 'recSOleKmRLKSGUxk', 'reciGUKgh5pDSQODm', 'recPG7h3YcEJpddEW']"
+        },
+        {
+          "name": "date_received",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "amount",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['3000', '50', '200', '1000']"
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Dues', 'Sponsorship', 'Fundraising', 'School Appropration']"
+        },
+        {
+          "name": "notes",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Annual funding from Student Government.', 'Ad revenue for use on flyers used to advertise upc...', 'Secured donations to help pay for speaker gifts.']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recP6DJPyi5donvXL', 'recEymrwCUKxiiosI', 'recJMazpPVexyFYTc', 'recVsoJJHFI8bgtfw', 'recL4aEZBZoPk9NYx', 'recD078PnS3x2doBe', 'recUdRhbhcEO1Hk5r', 'rec1x5zBFIqoOuPW8', 'recL94zpn6Xh6kQii', 'rec280Sk7o31iG0Tx']"
+        }
+      ]
+    }
+  ]
+}

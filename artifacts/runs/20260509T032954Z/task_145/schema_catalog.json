@@ -1,0 +1,58 @@
+{
+  "task_id": "task_145",
+  "question": "Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_145/context",
+  "tables": [
+    {
+      "source_file": "schema_catalog.json",
+      "source_type": "json",
+      "table_name": "schema_catalog",
+      "columns": [
+        {
+          "name": "task_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['task_145']"
+        },
+        {
+          "name": "question",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Among the events attended by more than 10 members ...']"
+        },
+        {
+          "name": "context_dir",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['/home/sxzx/lcc/KDD_Data-Agent/data/public/input/ta...']"
+        },
+        {
+          "name": "tables",
+          "type": "STRUCT(source_file VARCHAR, source_type VARCHAR, table_name VARCHAR, \"columns\" STRUCT(\"name\" VARCHAR, \"type\" VARCHAR, sample_values_str VARCHAR)[], \"sql\" VARCHAR)[]",
+          "sample_values_str": "Sample values: [\"[{'source_file': 'csv/attendance.csv', 'source_typ...\"]"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/attendance.csv",
+      "source_type": "csv",
+      "table_name": "attendance",
+      "columns": [
+        {
+          "name": "link_to_event",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['reciRZdAqNIKuMC96', 'recIuIXdbLe5j5vCA', 'recmbOVHSyzXQZpQr', 'recI43CzsZ0Q625ma', 'rec2N69DMcrqN9PJC', 'recEVTik3MlqbvLFi', 'recykdvf4LgsyA3wZ', 'recoVo6dFSzG1ypX7', 'recvCUOytx5jPw7kh', 'reczhS8wix6Kzbp9P']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recxBj3tjKTGHqucS', 'rec2a03QXbFQAUZ7X', 'rec75vvFxgYtHmqxY', 'recUdRhbhcEO1Hk5r', 'recttfySfQnYb68u3', 'recD078PnS3x2doBe', 'recEFd8s6pkrTt4Pz', 'recQaxyXBQG5BBtD0', 'recP6DJPyi5donvXL', 'recEymrwCUKxiiosI']"
+        }
+      ]
+    },
+    {
+      "source_file": "db/event.db",
+      "source_type": "sqlite",
+      "table_name": "event",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

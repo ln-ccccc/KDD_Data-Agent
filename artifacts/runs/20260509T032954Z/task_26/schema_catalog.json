@@ -1,0 +1,86 @@
+{
+  "task_id": "task_26",
+  "question": "How many members of the Student_Club have major in 'Physics Teaching'?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_26/context",
+  "tables": [
+    {
+      "source_file": "json/major.json",
+      "source_type": "json",
+      "table_name": "major",
+      "columns": [
+        {
+          "name": "major_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recHeH8VnZFNzXJtX', 'recW65GeDcH9NqJ8x', 'recXLfKqMqRArcKNg', 'recgszEfeJ5j1n90X', 'reckKqh5Ls0AAJOXD', 'reckd29hkJ9kXf5B3', 'recsiWnUNDT2kmOnr', 'recAD6I6ibHrl7adL', 'recPNRUQB8mTfSr8f', 'recibyDMerbnhPsja']"
+        },
+        {
+          "name": "major_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Special Education', 'Economics', 'Aerospace Studies', 'Music Therapy', 'Civil Engineering', 'German', 'Landscape Architecture', 'Journalism', 'Surgical Technician', 'Philosophy']"
+        },
+        {
+          "name": "department",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Communicative Disorders and Deaf Education Departm...', 'Management Information Systems Department', 'Watershed Sciences Department', 'Applied Economics Department', 'Physics Department', 'History Department', 'Music Department', 'Civil and Environmental Engineering Department', 'Computer Science Department', 'Plants, Soils, and Climate Department']"
+        },
+        {
+          "name": "college",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['College of Education & Human Services', 'College of Natural Resources', 'College of the Arts', 'College of Agriculture and Applied Sciences', 'School of Business', 'College of Science', 'College of Engineering', 'College of Humanities and Social Sciences']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/member.json",
+      "source_type": "json",
+      "table_name": "member",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec2a03QXbFQAUZ7X', 'recxBj3tjKTGHqucS', 'recUdRhbhcEO1Hk5r', 'rec4BLdZHS2Blfp4v', 'recZN8afUWlE5fZHG', 'recjHj4BS5A541n9v', 'reco0mr8dXTgs5wWA', 'recsTO4OZIF9rbubk', 'recTjHY5xXhvkCdVT', 'recWh2lJVOT6HjChK']"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Emily', 'Adele', 'Maya', 'Tyler', 'Elijah', 'Trent', 'Adela', 'Casey', 'Carlo', 'Phillip']"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Guidi', 'Smith', 'Nicholson', 'Nielson', 'Harrison', 'Ing', 'Balentine', 'Mccray', 'Mason', 'Ratcliffe']"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['christof.nielson@lpu.edu', 'madelyn.nicholson@lpu.edu', 'angela.sanders@lpu.edu', 'carlo.jacobs@lpu.edu', 'vincent.ratcliffe@lpu.edu', 'amy.firth@lpu.edu', 'randy.woodard@lpu.edu', 'phillip.cullen@lpu.edu', 'matt.snay@lpu.edu', 'casey.mason@lpu.edu']"
+        },
+        {
+          "name": "position",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['President', 'Secretary', 'Treasurer', 'Inactive', 'Member', 'Vice President']"
+        },
+        {
+          "name": "t_shirt_size",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['X-Large', 'Small', 'Large', 'Medium']"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['933-555-4147', '768-555-2323', '442-555-5882', '475-555-3802', '727-555-2732', '928-555-2577', '905-555-5035', '397-555-3444', '716-555-3845', '809-555-3360']"
+        },
+        {
+          "name": "zip",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['8861', '1020', '14606', '12203', '79106', '35640', '46123', '21784', '92307', '29440']"
+        },
+        {
+          "name": "link_to_major",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recR2UFppcwddeAkz', 'recxRBSgVYeSEGvyo', 'reclQ8BVvj2w4cQ4V', 'recXLfKqMqRArcKNg', 'rec09LedkREyskCNv', 'recxK3MHQFbR9J5uO', 'recRA9IxLl6eKPsJX', 'recT9LoDnC8ZvdPqM', 'recaJdSK83k6ekRJL', 'rectOU2QnznthfWv7']"
+        }
+      ]
+    }
+  ]
+}

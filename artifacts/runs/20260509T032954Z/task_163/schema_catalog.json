@@ -1,0 +1,115 @@
+{
+  "task_id": "task_163",
+  "question": "Identify the type of expenses and their total value approved for 'October Meeting' event.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_163/context",
+  "tables": [
+    {
+      "source_file": "temp_october_meeting_budget.csv",
+      "source_type": "csv",
+      "table_name": "temp_october_meeting_budget",
+      "columns": [
+        {
+          "name": "budget_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recTxecmwIhCdIKvl', 'rec1bG6HSft7XIvTP']"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Food', 'Advertisement']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/budget.json",
+      "source_type": "json",
+      "table_name": "budget",
+      "columns": [
+        {
+          "name": "budget_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec4DYUKBHMPZXWB2', 'recqSlOPFX5FlrMqw', 'recjcVh1VW33HXFFf', 'recmdREMTVnyW11OD', 'recRQdaiKCxFAlPCy', 'recZAjcliIUo4BCKW', 'recKjd7dcURsmP0KY', 'recTUGXxhTaFZ2qkg', 'recUmDNVie8sfU6UR', 'recfbLRzfFbWypDEs']"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Speaker Gifts', 'Food', 'Club T-Shirts', 'Advertisement', 'Parking']"
+        },
+        {
+          "name": "spent",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "remaining",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "amount",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['55', '350', '155', '20', '75', '25', '150', '10', '300']"
+        },
+        {
+          "name": "event_status",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Closed', 'Planning', 'Open']"
+        },
+        {
+          "name": "link_to_event",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recI43CzsZ0Q625ma', 'recY3Yesu24bRK7tr', 'reczhS8wix6Kzbp9P', 'rec0Si5cQ4rJRVzd6', 'recHaMmaKyfktt5fW', 'rec180D2MI4EpckHy', 'recs4x1BYWAsU2SKg', 'reciRZdAqNIKuMC96', 'recAlAwtBZ0Fqbr5K', 'recc8dizaKrSz3GmH']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/expense.csv",
+      "source_type": "csv",
+      "table_name": "expense",
+      "columns": [
+        {
+          "name": "expense_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recc708ab2lufAlNR', 'reckyNexGnIVMiNGn', 'recJnyr7Z1CjAlHgA', 'reccYcUpPCTpMXUbB', 'rec1oMgNFt7Y0G40x', 'recOMqTkoXlx8RFt4', 'recoMvesC2XeccvpV', 'recpalswlVDIbuLLu', 'recelGWS0AxwSMQwl', 'rec4Zg7WEmfiHXcnC']"
+        },
+        {
+          "name": "expense_description",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Pizza', 'Posters', 'Water, Veggie tray, supplies', 'Club shirts', 'Bakery - Donuts, muffins', 'Alumni Glass', 'Travel Mug', 'Parking', 'Water, chips, cookies', 'Water, cookies, chips']"
+        },
+        {
+          "name": "expense_date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "cost",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "approved",
+          "type": "BOOLEAN",
+          "sample_values_str": ""
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recro8T1MPMwRadVH', 'recD078PnS3x2doBe', 'rec4BLdZHS2Blfp4v']"
+        },
+        {
+          "name": "link_to_budget",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recwXIiKoBMjXJsGZ', 'recTUGXxhTaFZ2qkg', 'recr60T1tLsfdICV8', 'recKjd7dcURsmP0KY', 'recsI0IzpUuxl2bPh', 'recMc8TbR76rmUSHG', 'recexNBMuCY9emh6y', 'rectLnkwVg4AIgY0R', 'rec1bG6HSft7XIvTP', 'recTxecmwIhCdIKvl']"
+        }
+      ]
+    },
+    {
+      "source_file": "db/event.db",
+      "source_type": "sqlite",
+      "table_name": "event",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

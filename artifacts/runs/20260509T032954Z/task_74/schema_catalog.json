@@ -1,0 +1,91 @@
+{
+  "task_id": "task_74",
+  "question": "Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_74/context",
+  "tables": [
+    {
+      "source_file": "json/colour.json",
+      "source_type": "json",
+      "table_name": "colour",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '1', '35', '5', '9', '14', '17', '30']"
+        },
+        {
+          "name": "colour",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Brown', 'Green/Blue', 'Magenta', 'Violet', 'Brown/Black', 'Blue', 'Gold', 'Red/Black', 'Yellow/Blue', 'Blond']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/superhero.csv",
+      "source_type": "csv",
+      "table_name": "superhero",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "superhero_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Abomination', 'Abraxas', 'Alan Scott', 'Batgirl IV', 'Bill Harken', 'Bird-Man', 'Blaquesmith', 'Box III', 'Captain Marvel', 'Cat II']"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Angel Salvadore Bohusk', 'Cassandra Cain', 'Lucas Bishop', 'Karen Beecher-Duncan', 'Callisto', 'Nathaniel Christopher Adam', 'Brian Braddock', 'Frederick Christopher Freeman', 'Kevin Sidney', 'Claire Bennet']"
+        },
+        {
+          "name": "gender_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '3', '1']"
+        },
+        {
+          "name": "eye_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['16', '35', '31', '22', '15', '32', '7', '1', '34', '13']"
+        },
+        {
+          "name": "hair_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['13', '19', '31', '22', '11', '26', '20', '12', '6', '3']"
+        },
+        {
+          "name": "skin_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['31', '22', '28', '21', '13', '8', '19', '14', '1', '7']"
+        },
+        {
+          "name": "race_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['55', '26', '16', '11', '5', '44', '9', '17', '14', '30']"
+        },
+        {
+          "name": "publisher_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '10', '18', '25', '21', '15', '22', '3', '6']"
+        },
+        {
+          "name": "alignment_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['1', '3', '2']"
+        },
+        {
+          "name": "height_cm",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '244', '122', '259', '155', '305', '142', '6250', '180', '183']"
+        },
+        {
+          "name": "weight_kg",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['441', '181', '158', '230', '4000', '18', '49', '324', '405', '131']"
+        }
+      ]
+    }
+  ]
+}
