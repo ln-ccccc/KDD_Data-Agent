@@ -254,9 +254,9 @@ class ToolRegistry:
         return self.handlers[action](task, action_input)
 
 
-def _search_knowledge_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+def _search_knowledge_doc(task: PublicTask, action_input: dict[str, Any], model_path: str | None = None) -> ToolExecutionResult:
     query = str(action_input["query"])
-    res = search_knowledge_doc(task, query)
+    res = search_knowledge_doc(task, query, model_path=model_path)
     if not isinstance(res, dict):
         res = {"result": res}
     return ToolExecutionResult(ok=True, content=res)
@@ -277,7 +277,7 @@ def _read_knowledge_section(task: PublicTask, action_input: dict[str, Any]) -> T
         res = {"result": res}
     return ToolExecutionResult(ok=True, content=res)
 
-def _retrieve_schema_context(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+def _retrieve_schema_context(task: PublicTask, action_input: dict[str, Any], model_path: str | None = None) -> ToolExecutionResult:
     query = str(action_input["query"])
     top_k = int(action_input.get("top_k", 10))
     # We expect schema_catalog.json to be in the task output directory, but since we are executing tools, 
@@ -294,7 +294,7 @@ def _retrieve_schema_context(task: PublicTask, action_input: dict[str, Any]) -> 
         with open(catalog_path, 'w', encoding='utf-8') as f:
             json.dump(catalog, f, ensure_ascii=False)
             
-    res = retrieve_schema_context(catalog_path, query, top_k)
+    res = retrieve_schema_context(catalog_path, query, top_k, model_path=model_path)
     return ToolExecutionResult(ok=True, content=res)
 
 
@@ -443,8 +443,8 @@ def create_default_tool_registry(
         "read_json": _read_json,
         "list_knowledge_headings": _list_knowledge_headings,
         "read_knowledge_section": _read_knowledge_section,
-        "search_knowledge_doc": _search_knowledge_doc,
-        "retrieve_schema_context": _retrieve_schema_context,
+        "search_knowledge_doc": lambda t, i: _search_knowledge_doc(t, i, model_path=config.models.embedding_path if config else None),
+        "retrieve_schema_context": lambda t, i: _retrieve_schema_context(t, i, model_path=config.models.schema_embedding_path if config else None),
         "update_plan": _update_plan,
     }
 

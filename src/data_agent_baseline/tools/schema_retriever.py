@@ -7,7 +7,7 @@ import numpy as np
 # Lazy load models to avoid loading overhead for simple tasks
 _schema_embedding_model = None
 
-def get_schema_embedding_model():
+def get_schema_embedding_model(model_path: str | None = None):
     global _schema_embedding_model
     if _schema_embedding_model is None:
         from sentence_transformers import SentenceTransformer
@@ -16,15 +16,17 @@ def get_schema_embedding_model():
         # But per the plan, Alibaba-NLP/gte-Qwen2-1.5B-instruct is the target.
         # We will use 'Alibaba-NLP/gte-Qwen2-1.5B-instruct'
         
+        path = model_path or 'Alibaba-NLP/gte-Qwen2-1.5B-instruct'
         try:
-            logging.info("Loading Alibaba-NLP/gte-Qwen2-1.5B-instruct for Schema Linking...")
-            _schema_embedding_model = SentenceTransformer('Alibaba-NLP/gte-Qwen2-1.5B-instruct', trust_remote_code=True)
+            logging.info(f"Loading {path} for Schema Linking...")
+            _schema_embedding_model = SentenceTransformer(path, trust_remote_code=True)
             logging.info("Model loaded successfully.")
         except Exception as e:
-            logging.warning(f"Failed to load gte-Qwen2-1.5B-instruct: {e}. Falling back to all-MiniLM-L6-v2")
+            logging.warning(f"Failed to load {path}: {e}. Falling back to all-MiniLM-L6-v2")
             _schema_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
             
     return _schema_embedding_model
+
 
 def build_schema_index_blocks(catalog: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
@@ -77,7 +79,7 @@ def build_schema_index_blocks(catalog: Dict[str, Any]) -> List[Dict[str, Any]]:
             
     return blocks
 
-def retrieve_schema_context(catalog_path: Path, query: str, top_k: int = 5) -> Dict[str, Any]:
+def retrieve_schema_context(catalog_path: Path, query: str, top_k: int = 5, model_path: str | None = None) -> Dict[str, Any]:
     """
     Given a user query and a path to schema_catalog.json, 
     perform Hybrid Retrieval (BM25 + Dense Embedding) to return Top-K schema blocks.
@@ -108,7 +110,7 @@ def retrieve_schema_context(catalog_path: Path, query: str, top_k: int = 5) -> D
     # 2. Dense Embedding Search (Qwen2-1.5B)
     try:
         from sklearn.metrics.pairwise import cosine_similarity
-        model = get_schema_embedding_model()
+        model = get_schema_embedding_model(model_path=model_path)
         
         # Format query with instruction if using Qwen2-1.5B-instruct
         instruction = "Given a natural language query, retrieve the relevant database tables and columns that answer the query: "

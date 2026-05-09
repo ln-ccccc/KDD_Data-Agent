@@ -56,10 +56,17 @@ class RunConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class ModelsConfig:
+    embedding_path: str = "all-MiniLM-L6-v2"
+    schema_embedding_path: str = "Alibaba-NLP/gte-Qwen2-1.5B-instruct"
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     agent: AgentConfig = field(default_factory=AgentConfig)
     run: RunConfig = field(default_factory=RunConfig)
+    models: ModelsConfig = field(default_factory=ModelsConfig)
 
 
 def _path_value(raw_value: str | None, default_value: Path) -> Path:
@@ -80,6 +87,7 @@ def load_app_config(config_path: Path) -> AppConfig:
     dataset_payload = payload.get("dataset", {})
     agent_payload = payload.get("agent", {})
     run_payload = payload.get("run", {})
+    models_payload = payload.get("models", {})
 
     retry_payload = agent_payload.get("retry", {}) or {}
     retry_defaults = agent_defaults.retry.normalized()
@@ -139,4 +147,15 @@ def load_app_config(config_path: Path) -> AppConfig:
         task_timeout_seconds=int(run_payload.get("task_timeout_seconds", run_defaults.task_timeout_seconds)),
         trace_level=trace_level_raw,
     )
-    return AppConfig(dataset=dataset_config, agent=agent_config, run=run_config)
+
+    models_defaults = ModelsConfig()
+    models_config = ModelsConfig(
+        embedding_path=os.environ.get("EMBEDDING_MODEL_PATH")
+        or models_payload.get("embedding_path", models_defaults.embedding_path),
+        schema_embedding_path=os.environ.get("SCHEMA_EMBEDDING_MODEL_PATH")
+        or models_payload.get("schema_embedding_path", models_defaults.schema_embedding_path),
+    )
+
+    return AppConfig(
+        dataset=dataset_config, agent=agent_config, run=run_config, models=models_config
+    )

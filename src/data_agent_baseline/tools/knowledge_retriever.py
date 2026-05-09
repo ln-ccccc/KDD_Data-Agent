@@ -10,13 +10,15 @@ from data_agent_baseline.benchmark.schema import PublicTask
 # Lazy load model to avoid loading overhead for easy tasks
 _embedding_model = None
 
-def get_embedding_model():
+def get_embedding_model(model_path: str | None = None):
     global _embedding_model
     if _embedding_model is None:
         from sentence_transformers import SentenceTransformer
         # Use a lightweight but capable embedding model
-        _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        path = model_path or 'all-MiniLM-L6-v2'
+        _embedding_model = SentenceTransformer(path)
     return _embedding_model
+
 
 def list_knowledge_headings(task: PublicTask, query: str = "") -> dict[str, object]:
     """
@@ -89,7 +91,7 @@ def chunk_markdown_by_headings(content: str) -> List[Dict[str, str]]:
     # Filter out empty chunks
     return [c for c in chunks if c["content"]]
 
-def search_knowledge_doc(task: PublicTask, query: str, top_k: int = 3) -> dict[str, object]:
+def search_knowledge_doc(task: PublicTask, query: str, top_k: int = 3, model_path: str | None = None) -> dict[str, object]:
     """
     Search the knowledge.md file for specific business rules or term definitions using Hybrid RAG.
     For hard/extreme tasks, it uses BM25 (keyword match) + Embedding (semantic match) with RRF ranking.
@@ -115,7 +117,7 @@ def search_knowledge_doc(task: PublicTask, query: str, top_k: int = 3) -> dict[s
     
     # Use Hybrid RAG (BM25 + Embedding + RRF) if available
     try:
-        model = get_embedding_model()
+        model = get_embedding_model(model_path=model_path)
         # Encode corpus and query
         corpus_embeddings = model.encode([c["content"] for c in chunks])
         query_embedding = model.encode([query])
