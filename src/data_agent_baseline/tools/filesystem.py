@@ -106,21 +106,27 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
     ext = path.suffix.lower()
 
     if ext in [".csv", ".parquet", ".json", ".xlsx", ".xls"]:
-        # Use DuckDB DESCRIBE to get a clean schema
-        # For JSON, we might need read_json_auto if it's an array of records
-        
-        # Determine base query based on file type to handle nested JSON like {"records": [...]}
         if ext == ".json":
-            base_query = f"SELECT * FROM (SELECT unnest(records) as r FROM read_json_auto('{relative_path}'))"
-            # Try to see if it's nested
-            test_res = execute_duckdb_sql(task.context_dir, f"SELECT records FROM read_json_auto('{relative_path}') LIMIT 1")
-            if not test_res.get("success"):
-                base_query = f"SELECT * FROM '{relative_path}'"
+            candidates: list[str] = [
+                f"SELECT r.* FROM (SELECT unnest(records) as r FROM read_json_auto('{relative_path}'))",
+                f"SELECT * FROM read_json_auto('{relative_path}')",
+                f"SELECT * FROM '{relative_path}'",
+                f"SELECT r.* FROM (SELECT unnest(records) as r FROM read_json('{relative_path}'))",
+                f"SELECT * FROM read_json('{relative_path}')",
+            ]
+            base_query = ""
+            res: dict[str, object] | None = None
+            for candidate in candidates:
+                candidate_res = execute_duckdb_sql(task.context_dir, f"DESCRIBE {candidate}")
+                if candidate_res.get("success"):
+                    base_query = candidate
+                    res = candidate_res
+                    break
+            if res is None:
+                res = candidate_res
         else:
             base_query = f"SELECT * FROM '{relative_path}'"
-            
-        sql = f"DESCRIBE {base_query}"
-        res = execute_duckdb_sql(task.context_dir, sql)
+            res = execute_duckdb_sql(task.context_dir, f"DESCRIBE {base_query}")
         
         if res.get("success"):
             schema_rows = res.get("rows", [])
@@ -136,10 +142,14 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
                 distinct_values = []
                 if "VARCHAR" in str(col_type).upper() or "INTEGER" in str(col_type).upper() or "BIGINT" in str(col_type).upper():
                     # Handle column names with spaces or special characters by quoting them
-                    safe_col_name = f'"{col_name}"' if not col_name.startswith('r.') else col_name
-                    if base_query.startswith("SELECT * FROM (SELECT unnest(records)"):
-                        # Special handling for nested JSON columns
-                        val_sql = f"SELECT DISTINCT r.{safe_col_name} FROM (SELECT unnest(records) as r FROM read_json_auto('{relative_path}')) WHERE r.{safe_col_name} IS NOT NULL LIMIT 10"
+                    safe_col_name = f'"{col_name}"'
+                    if "unnest(records)" in base_query:
+                        reader = "read_json_auto" if "read_json_auto" in base_query else "read_json"
+                        val_sql = (
+                            f"SELECT DISTINCT r.{safe_col_name} "
+                            f"FROM (SELECT unnest(records) as r FROM {reader}('{relative_path}')) "
+                            f"WHERE r.{safe_col_name} IS NOT NULL LIMIT 10"
+                        )
                     else:
                         val_sql = f"SELECT DISTINCT {safe_col_name} FROM '{relative_path}' WHERE {safe_col_name} IS NOT NULL LIMIT 10"
                         

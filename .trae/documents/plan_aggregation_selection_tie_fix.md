@@ -1,11 +1,11 @@
 ## Summary
 
-本计划修复两类会导致 task_22 / task_25 / task_80 等评测失败的关键问题：
+本计划修复并**强约束**两类会持续导致 task_22 / task_25 / task_80 等评测失败的关键问题：
 
-1. DuckDB 在 schema 检查/查询阶段直接报错（`autoupdate` 配置项不兼容），导致 Agent 退化到 pandas 方案、丢失 SQL 语义与稳定性。
-2. 选择逻辑默认“唯一最优解”（`idxmin()` / `LIMIT 1` / `iloc[0]` 等）导致并列最优（tie）时召回不完整；而 DataAgent-Bench 的 gold 结果大量是 set-based（返回所有满足最优条件的行）。
+1. DuckDB 在 schema 检查/查询阶段直接报错（`autoupdate` 配置项不兼容），导致 Agent 被迫 fallback 到 pandas，并在 fallback 分支里大量出现“排序 + 截断”（`idxmin()` / `iloc[0]`）等不完整逻辑。
+2. 更根本的问题：Agent 的决策路径默认把最优化问题当作“选一个最优项”（unique argmin / unique argmax），而 DataAgent-Bench 的真实语义大量是 **set-based**：需要返回所有并列最优（ties）。
 
-目标：让 Agent 在“最小/最大/最低/最高/最佳/最差”等最优化选择题中默认返回“所有并列最优”，并恢复 DuckDB schema/查询能力以减少非必要的 pandas workaround。
+目标（可执行验收）：无论 DuckDB 是否可用，Agent 在“min/max/lowest/highest/best/worst/earliest/latest”等最优化题型上必须走同一条 canonical 路径：**先算全局最优值，再做等值过滤返回全部行**，并且工具层/QA 层能够让“排序 + 截断”策略无法被放行。
 
 ## Current State Analysis
 
@@ -20,6 +20,7 @@
 - 影响：
   - schema 获取失败 → prompt 规则“schema first / no blind guessing”无法落地
   - Agent 在任务中被迫使用 pandas 读文件 + 手工 join/aggregate，进一步放大 “selection collapse” 的概率
+  - 重要：**DuckDB 修好并不自动修复逻辑**。否则错误会从 pandas 版 `idxmin()` 迁移成 SQL 版 `ORDER BY ... LIMIT 1`。
 
 ### 2) “排序问题”误写成“筛选问题”：tie 未处理
 
@@ -27,14 +28,14 @@
   - `lowest_cost_event = event_costs.loc[event_costs['cost'].idxmin()]`
   - 见 [task_25 trace.json](file:///workspace/artifacts/runs/task_25/trace.json#L614-L656)
 - 问题本质：
-  - `idxmin()` / `LIMIT 1` / `head(1)` / `iloc[0]` 会把潜在的并列最优提前 collapse 成单行
+  - 任何“排序 + 截断”的最优解获取方式（包括但不限于 `idxmin()` / `idxmax()` / `nsmallest(1)` / `nlargest(1)` / `head(1)` / `iloc[0]` / `ORDER BY ... LIMIT 1`）都会把潜在的并列最优提前 collapse 成单行
   - gold 明确可能为多行 → 预测单行即使值对也会因 recall 不完整判错
 
 ### 3) QA Answer Review 的“行数推断”对 tie 不敏感
 
 - LangGraph runtime 在提交答案前会做 QA review：
   - [react_graph.py:_answer_review_step](file:///workspace/src/data_agent_baseline/orchestrators/langgraph/react_graph.py#L347-L390)
-- reviewer prompt 当前对“最小/最大类 selection”很可能推断为 1 行，从而放行单行答案：
+- reviewer prompt 当前对“最小/最大类 selection”很可能推断为 1 行，从而放行单行答案（这不是“没考虑 tie”，而是 reviewer 缺少强制验证分支）：
   - [prompt.py:ANSWER_REVIEW_SYSTEM_PROMPT](file:///workspace/src/data_agent_baseline/agents/prompt.py#L96-L122)
 
 ## Proposed Changes
@@ -51,53 +52,74 @@
   - `get_data_schema` 不再因 `autoupdate` 失败（至少对 CSV/JSON 能返回 DESCRIBE 结果）
   - `execute_duckdb_sql` 可执行基本 `SELECT 1` 与 `SELECT * FROM 'csv/xxx.csv' LIMIT 5`
 
-### B. 强化“并列最优返回全部”的 Agent 行为约束（Prompt + QA）
+### A2. DuckDB JSON 读取模式收敛（避免 “schema OK 但 query 炸”）
 
-#### B1) 主 Agent Prompt：显式禁止 collapse API，并给出正确模板
+**文件：** [filesystem.py:get_data_schema](file:///workspace/src/data_agent_baseline/tools/filesystem.py#L97-L179) 与 [duckdb_json_array.md](file:///workspace/src/data_agent_baseline/tools/skills/duckdb_json_array.md)
+
+- 现状：`get_data_schema` 对 JSON 采用 `read_json_auto(...)` + `unnest(records)` 的试探式分支，DuckDB 版本差异下存在不稳定风险。
+- 计划：统一为“明确语义、可 fallback”的 JSON 读取策略（工具层内置，不依赖 LLM 记忆）：
+  1. 首选：`read_json_auto`（保持自动推断优势）
+  2. 若失败：fallback 到 `read_json`（显式 JSON 读取）
+  3. 对 `{"records":[...]}` 结构：统一用 `SELECT unnest(records) AS r FROM ...` 再 `SELECT r.* ...`
+- 验收标准：task_22 / task_80 这类 JSON+CSV 任务，schema 探测与 DuckDB 查询不再出现 JSON 解析类随机失败。
+
+### B. 强化“并列最优返回全部”的 Agent 行为约束（Hard constraint + Canonical operator）
+
+#### B1) 主 Agent Prompt：升级为 HARD CONSTRAINT（违反即视为 reasoning error）
 
 **文件：** [prompt.py:REACT_SYSTEM_PROMPT](file:///workspace/src/data_agent_baseline/agents/prompt.py#L9-L45)
 
-- 在 CRITICAL RULES 与 Rules 中新增/强化一条 Tie-handling 规则（面向 SQL + pandas）：
-  - 禁止默认使用：`idxmin()`、`idxmax()`、`nlargest(1)`、`nsmallest(1)`、`head(1)`、`LIMIT 1`、`iloc[0]`、`[0]` 来回答 “min/max/lowest/highest/cheapest/most expensive/earliest/latest” 等最优化选择题（除非题目明确要求返回一个且声明 tie-breaking 规则）。
-  - 必须使用：先计算最优值，再用等值条件过滤，返回可能为多行的结果集。
-- 推荐模板（将写入 prompt，供模型直接复制）：
+- 新增一个明确分节：`### HARD CONSTRAINT (FAIL IF VIOLATED)`，内容包含：
+  - 对所有最优化题（min/max/lowest/highest/best/worst/earliest/latest 等）：
+    - 任何基于“排序 + 截断”的策略都视为**错误**（SQL: `ORDER BY ... LIMIT 1`; pandas: `idxmin/idxmax/head(1)/iloc[0]/nsmallest(1)/nlargest(1)` 等）。
+    - 你**必须**返回所有满足 `metric == global_optimum` 的行（ties 全部返回）。
+    - 即使你预计只有 1 行，也必须走“先算 optimum 再等值过滤”的流程（这条用于强制路径一致性，减少偷懒分支）。
+- Canonical 模板（将写入 prompt，作为“必须模板”而不是建议）：
   - **SQL（DuckDB）**：
-    - 方案 1：窗口函数（更简洁）
-      - `WITH agg AS (...) SELECT * FROM agg QUALIFY metric = MIN(metric) OVER ();`
-    - 方案 2：子查询 MIN（兼容性更强）
-      - `... HAVING SUM(cost) = (SELECT MIN(total_cost) FROM (...))`
+    - `WITH agg AS (<your GROUP BY query without ORDER BY/LIMIT>) SELECT * FROM agg QUALIFY metric = MIN(metric) OVER ();`
+    - 对 max：`QUALIFY metric = MAX(metric) OVER ();`
   - **pandas**：
-    - `min_v = df['metric'].min(); df[df['metric'] == min_v]`
-    - 如果最终只需某一列：对过滤后的结果取 `.loc[:, ['col']].drop_duplicates()`（避免无意 `.iloc[0]`）
+    - `min_v = df['metric'].min(); out = df[df['metric'] == min_v]`
+    - 若仅输出单列：`out[['col']].drop_duplicates()`（禁止 `.iloc[0]`）
 
-#### B2) QA Reviewer Prompt：把“min/max selection”视作“可能多行”
+#### B2) QA Reviewer Prompt：强制“单行最优解”一律质疑并拒绝（除非有 tie-check 证据）
 
 **文件：** [prompt.py:ANSWER_REVIEW_SYSTEM_PROMPT](file:///workspace/src/data_agent_baseline/agents/prompt.py#L96-L122)
 
-- 更新 reviewer 的“Dynamic Shape Inference”规则：
-  - 对包含 min/max/lowest/highest/best/worst/cheapest/most expensive/earliest/latest 等关键词的问题：
-    - 允许答案为多行（tie 情况），不要以“语法单数”推断必须 1 行。
-    - 若答案为 1 行，reviewer 应明确要求 Agent 做 tie-check（重新查询/重新计算：过滤 `== min` 后返回全部）。
-  - 仅当问题明确说 “one / single / the first only / return one row” 或给出 tie-break（如 “if tie pick alphabetically smallest”）时，才强制 1 行。
+- reviewer 需要的不是“允许多行”，而是**强制验证分支**：
+  - 对 min/max 类问题：
+    - 若答案只有 1 行：reviewer **必须**默认认为存在漏召回风险并 REJECT，要求 agent 提供 tie-check（证明其使用等值过滤而非排序截断）。
+    - 若答案多行：reviewer 检查列/语义是否对齐即可。
+  - 为避免 unique optimum 的死循环，计划同时引入“tie-check 证据机制”（见 C1/C2）。
 
-### C. （可选但推荐）在 `answer` 工具侧增加“疑似 premature collapse”软拦截
+### C. 工具层强制路径：把 tie-check 变成“可验证的提交协议”
+
+#### C1) `answer` 工具引入 `tie_checked` 协议字段（半硬约束）
+
+**文件：** [registry.py:_answer](file:///workspace/src/data_agent_baseline/tools/registry.py#L142-L206) 与 [prompt.py](file:///workspace/src/data_agent_baseline/agents/prompt.py)
+
+- 背景：仅靠列举禁止项永远不完备（`ORDER BY ... LIMIT 1` / `nsmallest(1)` / 复杂 sort+drop_duplicates+head 等会不断变体）。需要让工具层能验证“是否走过等值过滤路径”。
+- 方案：扩展 `answer` action_input 支持一个额外字段（不影响评测输出）：
+  - `tie_checked: true`
+- 约束（半硬）：
+  - 若问题被判定为 min/max 类最优化题：
+    - `len(rows) == 1` 且未提供 `tie_checked=true` → **直接返回错误**（强制 retry）
+    - `len(rows) >= 2` → 接受（ties 已体现）
+    - `len(rows) == 1` 且提供 `tie_checked=true` → 接受（代表 agent 已按协议做过等值过滤验证）
+- prompt 同步要求：min/max 类任务最终 `answer` 必须带上 `tie_checked=true`（除非答案本身多行）。
+
+#### C2) “min/max 题型识别”抽象为规则，而不是黑名单枚举
 
 **文件：** [registry.py:_answer](file:///workspace/src/data_agent_baseline/tools/registry.py#L142-L206)
 
-目的：把 tie-handling 从“纯 prompt 约束”升级为“运行时安全网”，减少模型偶发违规。
-
-- 在 `_answer` 里读取 `task.question`，做轻量关键词检测（min/max/lowest/highest/...）。
-- 如果检测到是最优化选择题，且 `rows` 只有 1 行：
-  - 返回 `ok=False` 的结构化错误（例如 `PotentialTieCollapse`），提示：
-    - “请验证是否存在并列最优：先算 min/max，再用等值过滤返回所有行；不要 idxmin/LIMIT 1/iloc[0]”
-  - 让 LangGraph 的 reflection 机制推动 Agent 自我修正并重新提交。
-- 该拦截应是“软拦截”（只在极少数高风险模式触发），避免对明显的单值聚合题（sum/count/avg）造成误伤。
+- 题型识别基于 question 关键词（min/max/lowest/highest/best/worst/cheapest/most expensive/earliest/latest 等）与排除词（纯聚合：sum/count/average/ratio 等）。
+- 工具层不去枚举所有违规 API，而是用 `tie_checked` 协议把“是否验证过 cardinality”变为可检查信号，从而彻底覆盖排序截断变体。
 
 ## Assumptions & Decisions
 
 - 决策：对“最小/最大类最优化选择题”一律采用 set-based 默认语义（返回全部并列最优），这与用户观察到的 DataAgent-Bench gold 行为对齐。
 - 决策：DuckDB 修复优先于 pandas workaround；schema/SQL 能用时尽量用 DuckDB 直接聚合/筛选，减少 pandas 手写逻辑分叉。
-- 关键词检测（如果实现 C）仅作为 safeguard，不替代 prompt 与 QA reviewer；触发后以“要求 tie-check”方式纠偏。
+- 决策：把“tie-check 是否执行”从隐含推断改成显式协议（`tie_checked=true`），并在工具层强制执行，避免 reviewer/模型偷懒放行。
 
 ## Verification Steps
 
@@ -117,8 +139,13 @@
   - `uv run dabench run-task task_22 ...`
   - `uv run dabench run-task task_80 ...`
 
+### 2b) 协议回归：min/max 单行答案必须显式 `tie_checked=true`
+
+- 人工/日志检查：
+  - 对 min/max 类任务，如果最终 prediction 仅 1 行，trace 中 `answer` action_input 必须包含 `tie_checked=true`。
+  - 如果 agent 试图用 `LIMIT 1 / idxmin / iloc[0]` 直接提交单行且未声明 tie_checked，应被工具层拒绝并触发 reflection 重试。
+
 ### 3) 评测侧校验（可选）
 
 - 对新的 run 目录执行：
   - [kdd_eval.py](file:///workspace/src/data_agent_baseline/benchmark/kdd_eval.py) 的 compare/evaluate 流程，确认行数不匹配类错误显著下降。
-

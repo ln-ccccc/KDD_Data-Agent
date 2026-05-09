@@ -250,6 +250,9 @@ class LangGraphReActAgent:
             if tool_result.is_terminal:
                 # Store answer as serializable dict to pending_answer for review
                 answer = tool_result.answer.to_dict() if tool_result.answer is not None else None
+                if isinstance(answer, dict) and model_step.action == "answer":
+                    if bool(model_step.action_input.get("tie_checked", False)):
+                        answer["tie_checked"] = True
                 rt.pending_answer = answer
                 gs["stop_reason"] = "reviewing_answer"
                 gs["rt"] = rt.to_langgraph_dict()

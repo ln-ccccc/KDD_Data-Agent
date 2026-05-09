@@ -15,7 +15,6 @@ _init_conn = duckdb.connect(':memory:', config={
 })
 try:
     _init_conn.execute("SET autoinstall_known_extensions=false;")
-    _init_conn.execute("SET autoupdate=false;")
     _init_conn.execute("INSTALL json;")
     _init_conn.execute("INSTALL sqlite;")
     _init_conn.execute("INSTALL excel;")
@@ -40,7 +39,6 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
     })
     try:
         conn.execute("SET autoinstall_known_extensions=false;")
-        conn.execute("SET autoupdate=false;")
         
         # Load extensions by default
         conn.execute("LOAD json;")

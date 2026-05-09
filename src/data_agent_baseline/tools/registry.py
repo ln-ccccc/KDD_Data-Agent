@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -139,9 +140,10 @@ def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolE
     return ToolExecutionResult(ok=True, content={"success": True, "message": f"Cheat sheet for '{topic}' updated successfully."})
 
 
-def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
+def _answer(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     columns = action_input.get("columns")
     rows = action_input.get("rows")
+    tie_checked = bool(action_input.get("tie_checked", False))
     # Answer pre-check (do NOT raise): return a structured error so the agent can self-correct.
     if not isinstance(columns, list) or not columns or not all(isinstance(item, str) for item in columns):
         return ToolExecutionResult(
@@ -191,6 +193,30 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
                 is_terminal=False,
             )
         normalized_rows.append(list(row))
+
+    question = str(getattr(task, "question", "") or "")
+    lower_q = question.lower()
+    is_opt_query = bool(
+        re.search(
+            r"\b(min|minimum|max|maximum|lowest|highest|best|worst|cheapest|most expensive|earliest|latest)\b",
+            lower_q,
+        )
+    )
+    if is_opt_query and len(normalized_rows) == 1 and not tie_checked:
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {
+                    "type": "PotentialTieCollapse",
+                    "message": (
+                        "This looks like a MIN/MAX-style selection question, but you are submitting exactly 1 row without an explicit tie-check. "
+                        "You MUST compute the global optimum value and filter with equality to return ALL optimal rows (ties). "
+                        "If the equality filter still yields 1 row, call answer again with action_input.tie_checked=true."
+                    ),
+                }
+            },
+            is_terminal=False,
+        )
 
     answer = AnswerTable(columns=list(columns), rows=normalized_rows)
     return ToolExecutionResult(
