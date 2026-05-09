@@ -89,6 +89,10 @@ hidden test set 只提供 `input/`，不会包含 `output/`。
 dataset:
   root_path: data/public/input
 
+models:
+  embedding_path: Alibaba-NLP/gte-Qwen2-1.5B-instruct
+  schema_embedding_path: Alibaba-NLP/gte-Qwen2-1.5B-instruct
+
 agent:
   model: YOUR_MODEL_NAME
   api_base: YOUR_API_BASE_URL
@@ -116,6 +120,8 @@ run:
 | 字段 | 含义 |
 | --- | --- |
 | `dataset.root_path` | 公开 demo `input/` 数据集根目录。相对路径按项目根目录解析。 |
+| `models.embedding_path` | knowledge 检索用 embedding 模型（SentenceTransformers 的模型 ID 或本地路径）；也可用环境变量 `EMBEDDING_MODEL_PATH` 覆盖。 |
+| `models.schema_embedding_path` | schema 检索用 embedding 模型（SentenceTransformers 的模型 ID 或本地路径）；也可用环境变量 `SCHEMA_EMBEDDING_MODEL_PATH` 覆盖。 |
 | `agent.model` | 模型名称。 |
 | `agent.api_base` | OpenAI-compatible 接口根地址。 |
 | `agent.api_key` | API key，直接从配置文件读取。 |

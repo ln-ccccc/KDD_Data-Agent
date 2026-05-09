@@ -16,7 +16,7 @@ def get_embedding_model(model_path: str | None = None):
         from sentence_transformers import SentenceTransformer
         # Use a lightweight but capable embedding model
         path = model_path or 'all-MiniLM-L6-v2'
-        _embedding_model = SentenceTransformer(path)
+        _embedding_model = SentenceTransformer(path, trust_remote_code=True)
     return _embedding_model
 
 

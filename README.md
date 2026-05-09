@@ -89,6 +89,10 @@ An example config file lives at `configs/react_baseline.example.yaml`.
 dataset:
   root_path: data/public/input
 
+models:
+  embedding_path: Alibaba-NLP/gte-Qwen2-1.5B-instruct
+  schema_embedding_path: Alibaba-NLP/gte-Qwen2-1.5B-instruct
+
 agent:
   model: YOUR_MODEL_NAME
   api_base: YOUR_API_BASE_URL
@@ -116,6 +120,8 @@ Config fields:
 | Field | Meaning |
 | --- | --- |
 | `dataset.root_path` | Root directory of the public demo `input/` dataset. Relative paths are resolved from the project root. |
+| `models.embedding_path` | Embedding model used by the knowledge retriever (SentenceTransformers model ID or local path). Override via `EMBEDDING_MODEL_PATH`. |
+| `models.schema_embedding_path` | Embedding model used by schema retriever (SentenceTransformers model ID or local path). Override via `SCHEMA_EMBEDDING_MODEL_PATH`. |
 | `agent.model` | Model name. |
 | `agent.api_base` | OpenAI-compatible API base URL. |
 | `agent.api_key` | API key, read directly from the config file. |

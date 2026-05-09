@@ -57,7 +57,7 @@ class RunConfig:
 
 @dataclass(frozen=True, slots=True)
 class ModelsConfig:
-    embedding_path: str = "all-MiniLM-L6-v2"
+    embedding_path: str = "Alibaba-NLP/gte-Qwen2-1.5B-instruct"
     schema_embedding_path: str = "Alibaba-NLP/gte-Qwen2-1.5B-instruct"
 
 
