@@ -1,0 +1,14 @@
+{
+  "task_id": "task_287",
+  "question": "Identify the gender of the superhero who has the ability of Phoenix Force.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_287/context",
+  "tables": [
+    {
+      "source_file": "db/superhero.db",
+      "source_type": "sqlite",
+      "table_name": "superhero",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

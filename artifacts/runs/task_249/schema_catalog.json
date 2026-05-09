@@ -1,0 +1,14 @@
+{
+  "task_id": "task_249",
+  "question": "What is the average of the up votes and the average user age for users creating more than 10 posts?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_249/context",
+  "tables": [
+    {
+      "source_file": "db/users.db",
+      "source_type": "sqlite",
+      "table_name": "users",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

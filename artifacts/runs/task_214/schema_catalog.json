@@ -1,0 +1,14 @@
+{
+  "task_id": "task_214",
+  "question": "How many Brazilian Portuguese translated sets are inside the Commander block?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_214/context",
+  "tables": [
+    {
+      "source_file": "db/sets.db",
+      "source_type": "sqlite",
+      "table_name": "sets",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

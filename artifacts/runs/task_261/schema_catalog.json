@@ -1,0 +1,14 @@
+{
+  "task_id": "task_261",
+  "question": "Among the superheroes with the super power of \"Super Strength\", how many of them have a height of over 200cm?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_261/context",
+  "tables": [
+    {
+      "source_file": "db/hero_power.db",
+      "source_type": "sqlite",
+      "table_name": "hero_power",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

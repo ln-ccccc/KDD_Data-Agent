@@ -1,0 +1,14 @@
+{
+  "task_id": "task_218",
+  "question": "What is the telephone number for the school with the lowest average score in reading in Fresno Unified?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_218/context",
+  "tables": [
+    {
+      "source_file": "db/satscores.db",
+      "source_type": "sqlite",
+      "table_name": "satscores",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

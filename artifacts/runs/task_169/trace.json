@@ -1,0 +1,19 @@
+{
+  "task_id": "task_169",
+  "succeeded": false,
+  "failure_reason": "Task failed with error: Model request failed after retries: Request timed out.",
+  "steps": [
+    {
+      "thought": "Task failed with error: Model request failed after retries: Request timed out.",
+      "action": "error",
+      "action_input": {},
+      "observation": {
+        "ok": false,
+        "content": "Error"
+      }
+    }
+  ],
+  "answer": null,
+  "e2e_elapsed_seconds": 584.42,
+  "trace_level": "standard"
+}

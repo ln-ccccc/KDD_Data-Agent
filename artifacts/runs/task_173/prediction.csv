@@ -1,0 +1,2 @@
+Explanation
+It is not possible to list the countries of gas stations with transactions in June 2013 with the available data. The 'transactions_1k.db' only contains data for August 2012. The 'csv/yearmonth.csv' has data for June 2013 but lacks 'GasStationID' to link to gas station countries. There is no common link between the June 2013 transaction data and the gas station country information.

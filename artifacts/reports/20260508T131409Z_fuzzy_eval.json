@@ -1,0 +1,362 @@
+{
+  "run_id": "20260508T131409Z",
+  "total_tasks": 50,
+  "correct_tasks": 29,
+  "pass_rate": 0.58,
+  "embedding_enabled": false,
+  "embedding_model": "Alibaba-NLP/gte-Qwen2-1.5B-instruct",
+  "embedding_fallback_reason": "No module named 'sentence_transformers'",
+  "similarity_threshold": 0.82,
+  "results": [
+    {
+      "task_id": "task_11",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_19",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_22",
+      "status": "Wrong Answer",
+      "reason": "row_count_mismatch(pred=1, gold=2)",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_24",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_25",
+      "status": "Wrong Answer",
+      "reason": "row_count_mismatch(pred=1, gold=3)",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_26",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_27",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_38",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_64",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_67",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_74",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_75",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_80",
+      "status": "Wrong Answer",
+      "reason": "row_count_mismatch(pred=1, gold=2)",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_86",
+      "status": "Wrong Answer",
+      "reason": "row_count_mismatch(pred=17, gold=16)",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_89",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_145",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_163",
+      "status": "Wrong Answer",
+      "reason": "row_count_mismatch(pred=2, gold=1)",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_169",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Request timed out.",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_173",
+      "status": "Wrong Answer",
+      "reason": "row_count_mismatch(pred=1, gold=2)",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_180",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_194",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_196",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_199",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_200",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_214",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_218",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_243",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_249",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_250",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_257",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_259",
+      "status": "Execution Error",
+      "reason": "Task timed out after 600.0 seconds. Process killed.",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_261",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_269",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_283",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_287",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_292",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_303",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_305",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_330",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_344",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_349",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_350",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_352",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_355",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_379",
+      "status": "Wrong Answer",
+      "reason": "row_count_mismatch(pred=6, gold=7)",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_396",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model response missing text content.",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_408",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_415",
+      "status": "Correct",
+      "reason": "",
+      "is_correct": true,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_418",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    },
+    {
+      "task_id": "task_420",
+      "status": "Wrong Answer",
+      "reason": "unmatched_columns",
+      "is_correct": false,
+      "fuzzy_matches": []
+    }
+  ]
+}

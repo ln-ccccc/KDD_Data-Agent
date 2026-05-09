@@ -1,0 +1,14 @@
+{
+  "task_id": "task_259",
+  "question": "Among the posts with views ranging from 100 to 150, what is the comment with the highest score?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_259/context",
+  "tables": [
+    {
+      "source_file": "db/posts.db",
+      "source_type": "sqlite",
+      "table_name": "posts",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}
