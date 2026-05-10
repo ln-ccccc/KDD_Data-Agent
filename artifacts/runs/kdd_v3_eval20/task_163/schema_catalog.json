@@ -1,0 +1,14 @@
+{
+  "task_id": "task_163",
+  "question": "Identify the type of expenses and their total value approved for 'October Meeting' event.",
+  "context_dir": "/workspace/data/public/input/task_163/context",
+  "tables": [
+    {
+      "source_file": "db/event.db",
+      "source_type": "sqlite",
+      "table_name": "event",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

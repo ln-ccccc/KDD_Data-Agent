@@ -1,0 +1,168 @@
+{
+  "run_id": "kdd_v3_eval20",
+  "task_count": 20,
+  "succeeded_task_count": 0,
+  "max_workers": 4,
+  "tasks": [
+    {
+      "task_id": "task_11",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_11",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_11/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_19",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_19",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_19/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_22",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_22",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_22/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_24",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_24",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_24/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_25",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_25",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_25/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_26",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_26",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_26/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_27",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_27",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_27/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_38",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_38",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_38/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_64",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_64",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_64/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_67",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_67",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_67/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_74",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_74",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_74/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_75",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_75",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_75/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_80",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_80",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_80/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_86",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_86",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_86/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_89",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_89",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_89/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_145",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_145",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_145/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_163",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_163",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_163/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_169",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_169",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_169/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_173",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_173",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_173/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    },
+    {
+      "task_id": "task_180",
+      "task_output_dir": "/workspace/artifacts/runs/kdd_v3_eval20/task_180",
+      "prediction_csv_path": null,
+      "trace_path": "/workspace/artifacts/runs/kdd_v3_eval20/task_180/trace.json",
+      "succeeded": false,
+      "failure_reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}"
+    }
+  ]
+}

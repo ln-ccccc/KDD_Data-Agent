@@ -1,0 +1,128 @@
+{
+  "run_id": "kdd_v3_eval20",
+  "total_tasks": 20,
+  "correct_tasks": 0,
+  "pass_rate": 0.0,
+  "results": [
+    {
+      "task_id": "task_11",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_19",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_22",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_24",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_25",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_26",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_27",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_38",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_64",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_67",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_74",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_75",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_80",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_86",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_89",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_145",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_163",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_169",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_173",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    },
+    {
+      "task_id": "task_180",
+      "status": "Execution Error",
+      "reason": "Task failed with error: Model request failed after retries: Error code: 401 - {'error': {'message': \"Authentication Error, LiteLLM Virtual Key expected. Received=${DA****KEY}, expected to start with 'sk-'.\", 'type': 'auth_error', 'param': 'None', 'code': '401'}}",
+      "is_correct": false
+    }
+  ]
+}

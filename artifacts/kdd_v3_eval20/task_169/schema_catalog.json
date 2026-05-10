@@ -1,0 +1,14 @@
+{
+  "task_id": "task_169",
+  "question": "What was the average monthly consumption of customers in SME for the year 2013?",
+  "context_dir": "/workspace/data/public/input/task_169/context",
+  "tables": [
+    {
+      "source_file": "db/customers.db",
+      "source_type": "sqlite",
+      "table_name": "customers",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}
