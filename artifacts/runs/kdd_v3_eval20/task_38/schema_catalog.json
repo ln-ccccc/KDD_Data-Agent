@@ -1,6 +1,0 @@
-{
-  "task_id": "task_38",
-  "question": "List all the withdrawals in cash transactions that the client with the id 3356 makes.",
-  "context_dir": "/workspace/data/public/input/task_38/context",
-  "tables": []
-}
