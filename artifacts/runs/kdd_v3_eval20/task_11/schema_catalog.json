@@ -1,0 +1,6 @@
+{
+  "task_id": "task_11",
+  "question": "For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with.",
+  "context_dir": "/workspace/data/public/input/task_11/context",
+  "tables": []
+}

@@ -1,0 +1,14 @@
+{
+  "task_id": "task_145",
+  "question": "Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?",
+  "context_dir": "/workspace/data/public/input/task_145/context",
+  "tables": [
+    {
+      "source_file": "db/event.db",
+      "source_type": "sqlite",
+      "table_name": "event",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}
