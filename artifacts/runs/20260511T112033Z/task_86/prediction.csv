@@ -1,2 +1,0 @@
-message
-"The column 'track number' could not be identified in the available data. The 'number' column for Alex Yoong in drivers.json is null, and no other file contains a column that clearly represents a 'track number' for a driver in a race."
