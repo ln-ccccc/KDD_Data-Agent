@@ -1,4 +1,4 @@
-from typing import Any, List, Dict
+from typing import Any, Dict, List
 
 from data_agent_baseline.benchmark.schema import PublicTask
 from data_agent_baseline.tools.registry import ToolExecutionResult, ToolSpec
@@ -33,7 +33,12 @@ def TOOL_HANDLER(task: PublicTask, action_input: Dict[str, Any]) -> ToolExecutio
     if not isinstance(columns, list) or not isinstance(rows, list):
         return ToolExecutionResult(
             ok=False,
-            content={"error": "columns and rows must be lists."},
+            content={
+                "error": {
+                    "type": "INVALID_ANSWER_FORMAT",
+                    "message": "columns and rows must be lists.",
+                }
+            },
         )
 
     # -----------------------------
@@ -42,7 +47,12 @@ def TOOL_HANDLER(task: PublicTask, action_input: Dict[str, Any]) -> ToolExecutio
     if len(rows) == 0:
         return ToolExecutionResult(
             ok=False,
-            content={"error": "Empty result set."},
+            content={
+                "error": {
+                    "type": "EMPTY_RESULT",
+                    "message": "Empty result set.",
+                }
+            },
         )
 
     # -----------------------------
@@ -79,15 +89,41 @@ def TOOL_HANDLER(task: PublicTask, action_input: Dict[str, Any]) -> ToolExecutio
         return ToolExecutionResult(
             ok=False,
             content={
-                "error": "Missing required columns for verification.",
-                "missing_columns": missing_required,
-                "hint": "Columns used in WHERE/JOIN must appear in output."
+                "error": {
+                    "type": "MISSING_REQUIRED_COLUMNS",
+                    "message": "Missing required columns for verification.",
+                    "missing_columns": missing_required,
+                },
+                "hint": "Columns used in WHERE/GROUP BY/JOIN should appear in output.",
             },
         )
 
-    # -----------------------------
-    # 4. 返回结果（不阻断的告警信息）
-    # -----------------------------
+    if all_null_columns:
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {
+                    "type": "ALL_NULL_COLUMN",
+                    "message": "One or more columns are entirely NULL.",
+                    "columns": all_null_columns,
+                },
+                "hint": "Check JOIN/filter logic and selected fields.",
+            },
+        )
+
+    if all_zero_numeric_columns:
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {
+                    "type": "ALL_ZERO_RESULT",
+                    "message": "One or more numeric columns are all zero.",
+                    "columns": all_zero_numeric_columns,
+                },
+                "hint": "Check aggregation/filter conditions.",
+            },
+        )
+
     result = {
         "is_empty": False,
         "all_null_columns": all_null_columns,

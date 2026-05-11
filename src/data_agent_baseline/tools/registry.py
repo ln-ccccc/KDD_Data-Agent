@@ -95,14 +95,49 @@ def _execute_context_sql(task: PublicTask, action_input: dict[str, Any]) -> Tool
     path = resolve_context_path(task, str(action_input["path"]))
     sql = str(action_input["sql"])
     limit = int(action_input.get("limit", 200))
-    return ToolExecutionResult(ok=True, content=execute_read_only_sql(path, sql, limit=limit))
+    content = execute_read_only_sql(path, sql, limit=limit)
+    ok = bool(content.get("success"))
+    if ok:
+        return ToolExecutionResult(ok=True, content=content)
+    return ToolExecutionResult(
+        ok=False,
+        content={
+            "error": {
+                "type": "SQL_EXECUTION_ERROR",
+                "message": str(content.get("error_message", "SQLite execution failed.")),
+                "sql_error_type": str(content.get("error_type", "EXECUTION_ERROR")),
+                "engine": "sqlite",
+            },
+            "retry_signal": {
+                "allowed_next_actions": content.get("allowed_next_actions", []),
+                "forbidden_actions": content.get("forbidden_actions", []),
+            },
+        },
+    )
 
 
 def _execute_duckdb_sql(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     sql = str(action_input["sql"])
     limit = int(action_input.get("limit", 200))
     content = execute_duckdb_sql(task.context_dir, sql, limit=limit)
-    return ToolExecutionResult(ok=bool(content.get("success")), content=content)
+    ok = bool(content.get("success"))
+    if ok:
+        return ToolExecutionResult(ok=True, content=content)
+    return ToolExecutionResult(
+        ok=False,
+        content={
+            "error": {
+                "type": "SQL_EXECUTION_ERROR",
+                "message": str(content.get("error_message", "DuckDB execution failed.")),
+                "sql_error_type": str(content.get("error_type", "EXECUTION_ERROR")),
+                "engine": "duckdb",
+            },
+            "retry_signal": {
+                "allowed_next_actions": content.get("allowed_next_actions", []),
+                "forbidden_actions": content.get("forbidden_actions", []),
+            },
+        },
+    )
 
 
 def _execute_python(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -142,13 +177,12 @@ def _update_cheat_sheet(task: PublicTask, action_input: dict[str, Any]) -> ToolE
 def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     columns = action_input.get("columns")
     rows = action_input.get("rows")
-    # Answer pre-check (do NOT raise): return a structured error so the agent can self-correct.
     if not isinstance(columns, list) or not columns or not all(isinstance(item, str) for item in columns):
         return ToolExecutionResult(
             ok=False,
             content={
                 "error": {
-                    "type": "InvalidAnswer",
+                    "type": "INVALID_ANSWER_FORMAT",
                     "message": "answer.columns must be a non-empty list of strings.",
                 },
                 "hint": "Example: {\"columns\": [\"col1\"], \"rows\": [[\"value1\"]]}",
@@ -159,8 +193,17 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
         return ToolExecutionResult(
             ok=False,
             content={
-                "error": {"type": "InvalidAnswer", "message": "answer.rows must be a list."},
+                "error": {"type": "INVALID_ANSWER_FORMAT", "message": "answer.rows must be a list."},
                 "hint": "rows must be a list of rows; each row must be a list with same length as columns.",
+            },
+            is_terminal=False,
+        )
+    if len(rows) == 0:
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {"type": "EMPTY_RESULT", "message": "answer.rows cannot be empty."},
+                "hint": "Retry SQL and return at least one row.",
             },
             is_terminal=False,
         )
@@ -171,7 +214,7 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
             return ToolExecutionResult(
                 ok=False,
                 content={
-                    "error": {"type": "InvalidAnswer", "message": "Each answer row must be a list."},
+                    "error": {"type": "INVALID_ANSWER_FORMAT", "message": "Each answer row must be a list."},
                     "hint": "rows should look like: [[val1, val2], [val1, val2]]",
                 },
                 is_terminal=False,
@@ -181,7 +224,7 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
                 ok=False,
                 content={
                     "error": {
-                        "type": "InvalidAnswer",
+                        "type": "INVALID_ANSWER_FORMAT",
                         "message": "Each answer row must match the number of columns.",
                         "expected_columns": len(columns),
                         "got_columns": len(row),
@@ -191,6 +234,20 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
                 is_terminal=False,
             )
         normalized_rows.append(list(row))
+
+    dedup_keys = {tuple(row) for row in normalized_rows}
+    if len(dedup_keys) != len(normalized_rows):
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {
+                    "type": "INVALID_ANSWER_FORMAT",
+                    "message": "answer.rows contains duplicate rows.",
+                },
+                "hint": "Remove duplicate rows before submitting final answer.",
+            },
+            is_terminal=False,
+        )
 
     answer = AnswerTable(columns=list(columns), rows=normalized_rows)
     return ToolExecutionResult(
@@ -206,15 +263,62 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
 
 
 def _extract_where_columns(sql: str) -> list[str]:
-    """Extract column names from WHERE clause using regex (v2 simplified)."""
-    where_match = re.search(r"where(.*)", sql, re.IGNORECASE | re.DOTALL)
+    """Extract column names from WHERE clause using regex."""
+    where_match = re.search(
+        r"\bwhere\b(.*?)(\bgroup\s+by\b|\border\s+by\b|\blimit\b|$)",
+        sql,
+        re.IGNORECASE | re.DOTALL,
+    )
     if not where_match:
         return []
-
     where_clause = where_match.group(1)
-    # Match identifiers followed by comparison operators or IN
-    cols = re.findall(r"([a-zA-Z_][a-zA-Z0-9_]*)\s*(=|>|<|IN|LIKE|IS)", where_clause, re.IGNORECASE)
-    return list(set([c[0] for c in cols]))
+    cols = re.findall(
+        r"(?:\b\w+\.)*([a-zA-Z_][a-zA-Z0-9_]*)\s*(=|>|<|IN|LIKE|IS|BETWEEN)",
+        where_clause,
+        re.IGNORECASE,
+    )
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for col, _ in cols:
+        if col not in seen:
+            seen.add(col)
+            ordered.append(col)
+    return ordered
+
+
+def _extract_group_by_columns(sql: str) -> list[str]:
+    """Extract GROUP BY columns using low-cost regex."""
+    match = re.search(
+        r"\bgroup\s+by\b(.*?)(\border\s+by\b|\blimit\b|\bhaving\b|$)",
+        sql,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        return []
+    clause = match.group(1)
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for part in clause.split(","):
+        token = part.strip().split()[0] if part.strip() else ""
+        if not token:
+            continue
+        name = token.split(".")[-1].replace('"', "").replace("`", "")
+        if re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", name) and name not in seen:
+            seen.add(name)
+            ordered.append(name)
+    return ordered
+
+
+def _extract_required_columns(sql: str) -> list[str]:
+    combined: list[str] = []
+    seen: set[str] = set()
+    for col in _extract_where_columns(sql) + _extract_group_by_columns(sql):
+        if col not in seen:
+            seen.add(col)
+            combined.append(col)
+    if "Thrombosis" in sql and "Thrombosis" not in seen:
+        combined.append("Thrombosis")
+    return combined
 
 
 @dataclass(slots=True)
@@ -232,20 +336,39 @@ class ToolRegistry:
             lines.append(f"  input_schema: {spec.input_schema}")
         return "\n".join(lines)
 
-    def _run_sql_guard_skills(
+    def _guard_failed_result(
+        self,
+        *,
+        failed_guard: str,
+        details: dict[str, Any],
+        hint: str = "Fix SQL and retry",
+    ) -> ToolExecutionResult:
+        return ToolExecutionResult(
+            ok=False,
+            content={
+                "error": {
+                    "type": "GUARD_FAILED",
+                    "failed_guard": failed_guard,
+                    "details": details,
+                },
+                "hint": hint,
+            },
+            is_terminal=False,
+        )
+
+    def _run_pre_guards(
         self,
         task: PublicTask,
         action: str,
         action_input: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Run deterministic guard skills for SQL actions (must-trigger rules)."""
+    ) -> ToolExecutionResult | None:
         if action not in {"execute_duckdb_sql", "execute_context_sql"}:
-            return {}
+            return None
         sql = str(action_input.get("sql", ""))
         if not sql or not re.search(r"\bjoin\b", sql, flags=re.IGNORECASE):
-            return {}
+            return None
         if "skill_join_key_validator" not in self.handlers:
-            return {}
+            return None
 
         validator_input: dict[str, Any] = {
             "sql": sql,
@@ -253,110 +376,82 @@ class ToolRegistry:
         }
         if action == "execute_context_sql" and "path" in action_input:
             validator_input["db_path"] = str(action_input.get("path", ""))
-
         try:
-            guard_result = self.handlers["skill_join_key_validator"](task, validator_input)
-            return {
-                "join_key_validator": {
-                    "ok": guard_result.ok,
-                    "content": guard_result.content,
-                }
-            }
+            result = self.handlers["skill_join_key_validator"](task, validator_input)
         except Exception as exc:  # noqa: BLE001
-            return {
-                "join_key_validator": {
-                    "ok": False,
-                    "content": {
-                        "error": f"join validator execution failed: {exc}",
-                    },
-                }
-            }
+            return self._guard_failed_result(
+                failed_guard="skill_join_key_validator",
+                details={
+                    "error": {
+                        "type": "JOIN_KEY_ERROR",
+                        "message": f"join validator execution failed: {exc}",
+                    }
+                },
+            )
+        if result.ok:
+            return None
+        return self._guard_failed_result(
+            failed_guard="skill_join_key_validator",
+            details=result.content if isinstance(result.content, dict) else {"error": result.content},
+            hint="Rewrite JOIN keys or aggregate before JOIN, then retry",
+        )
 
-    def _run_post_sql_guards(
+    def _run_post_guards(
         self,
         task: PublicTask,
         action: str,
         action_input: dict[str, Any],
         tool_result: ToolExecutionResult,
-    ) -> dict[str, Any]:
-        """Run deterministic guards after SQL execution (must-trigger)."""
+    ) -> ToolExecutionResult | None:
         if action not in {"execute_duckdb_sql", "execute_context_sql"}:
-            return {}
+            return None
         if not tool_result.ok or "skill_answer_guard" not in self.handlers:
-            return {}
+            return None
+        if not isinstance(tool_result.content, dict):
+            return None
 
         sql = str(action_input.get("sql", ""))
-        required_columns = _extract_where_columns(sql)
-
-        # Hard-coded rules (as requested by user)
-        if "Thrombosis" in sql and "Thrombosis" not in required_columns:
-            required_columns.append("Thrombosis")
-
-        content = tool_result.content
-        if not isinstance(content, dict):
-            return {}
-
         guard_input = {
-            "columns": content.get("columns", []),
-            "rows": content.get("rows", []),
-            "required_columns": required_columns,
+            "columns": tool_result.content.get("columns", []),
+            "rows": tool_result.content.get("rows", []),
+            "required_columns": _extract_required_columns(sql),
         }
-
         try:
-            guard_res = self.handlers["skill_answer_guard"](task, guard_input)
-            return {
-                "answer_guard": {
-                    "ok": guard_res.ok,
-                    "content": guard_res.content,
-                }
-            }
+            result = self.handlers["skill_answer_guard"](task, guard_input)
         except Exception as exc:  # noqa: BLE001
-            return {
-                "answer_guard": {
-                    "ok": False,
-                    "content": {"error": f"answer guard failed: {exc}"},
-                }
-            }
+            return self._guard_failed_result(
+                failed_guard="skill_answer_guard",
+                details={
+                    "error": {
+                        "type": "INVALID_ANSWER_FORMAT",
+                        "message": f"answer guard execution failed: {exc}",
+                    }
+                },
+            )
+        if result.ok:
+            return None
+        return self._guard_failed_result(
+            failed_guard="skill_answer_guard",
+            details=result.content if isinstance(result.content, dict) else {"error": result.content},
+            hint="Rewrite SQL (SELECT/WHERE/GROUP BY) and retry",
+        )
 
     def execute(self, task: PublicTask, action: str, action_input: dict[str, Any]) -> ToolExecutionResult:
         """执行指定工具"""
-        # 验证工具是否存在
         if action not in self.handlers:
             raise KeyError(f"Unknown tool: {action}")
 
-        # 1. Pre-execution guards
-        guard_info = self._run_sql_guard_skills(task, action, action_input)
+        pre_failure = self._run_pre_guards(task, action, action_input)
+        if pre_failure is not None:
+            return pre_failure
 
-        # 2. Execution
         tool_result = self.handlers[action](task, action_input)
-
-        # 3. Post-execution guards
-        post_guard_info = self._run_post_sql_guards(task, action, action_input, tool_result)
-
-        # Merge guard info
-        all_guard_info = {**guard_info, **post_guard_info}
-
-        if not all_guard_info:
+        if not tool_result.ok:
             return tool_result
 
-        if isinstance(tool_result.content, dict):
-            merged_content = dict(tool_result.content)
-            merged_content["_skill_checks"] = all_guard_info
-
-            # Intercept: if any guard failed, the overall tool execution should be considered failed
-            # This prevents the agent from ignoring critical validation errors.
-            is_ok = tool_result.ok
-            for g in all_guard_info.values():
-                if not g.get("ok", True):
-                    is_ok = False
-                    break
-
-            return ToolExecutionResult(
-                ok=is_ok,
-                content=merged_content,
-                is_terminal=tool_result.is_terminal,
-                answer=tool_result.answer,
-            )
+        post_failure = self._run_post_guards(task, action, action_input, tool_result)
+        if post_failure is not None:
+            return post_failure
         return tool_result
 
 

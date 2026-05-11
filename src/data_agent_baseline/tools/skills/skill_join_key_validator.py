@@ -39,10 +39,10 @@ def _run(engine: str, task: PublicTask, db_path: str, sql: str) -> dict[str, Any
     match = JOIN_PATTERN.search(sql)
     if not match:
         return {
-            "join_detected": True,
-            "join_type_inferred": "unknown",
-            "join_risk": "UNKNOWN",
-            "recommendation": "JOIN detected but parser could not extract keys. Validate manually.",
+            "error": {
+                "type": "JOIN_KEY_ERROR",
+                "message": "JOIN detected but parser could not extract join keys.",
+            }
         }
 
     left_table = match.group("left_table")
@@ -69,13 +69,11 @@ def _run(engine: str, task: PublicTask, db_path: str, sql: str) -> dict[str, Any
     )
     if not left_stats.get("success") or not right_stats.get("success"):
         return {
-            "join_detected": True,
-            "join_type_inferred": "unknown",
-            "join_risk": "UNKNOWN",
-            "recommendation": "Could not compute key cardinality; inspect schema and keys manually.",
-            "details": {
-                "left_error": left_stats.get("error"),
-                "right_error": right_stats.get("error"),
+            "error": {
+                "type": "JOIN_KEY_ERROR",
+                "message": "Could not compute join key cardinality.",
+                "left_error": left_stats.get("error_message", left_stats.get("error")),
+                "right_error": right_stats.get("error_message", right_stats.get("error")),
             },
         }
 
@@ -120,7 +118,10 @@ def TOOL_HANDLER(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutio
     try:
         sql = str(action_input.get("sql", "")).strip()
         if not sql:
-            return ToolExecutionResult(ok=False, content={"error": "sql is required."})
+            return ToolExecutionResult(
+                ok=False,
+                content={"error": {"type": "JOIN_KEY_ERROR", "message": "sql is required."}},
+            )
         if not re.search(r"\bjoin\b", sql, flags=re.IGNORECASE):
             return ToolExecutionResult(
                 ok=True,
@@ -130,9 +131,33 @@ def TOOL_HANDLER(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutio
         db_path = str(action_input.get("db_path", "")).strip()
         if engine == "sqlite" and not db_path:
             return ToolExecutionResult(
-                ok=False, content={"error": "db_path is required for sqlite engine."}
+                ok=False,
+                content={
+                    "error": {
+                        "type": "JOIN_KEY_ERROR",
+                        "message": "db_path is required for sqlite engine.",
+                    }
+                },
             )
         result = _run(engine=engine, task=task, db_path=db_path, sql=sql)
+        if "error" in result:
+            return ToolExecutionResult(ok=False, content=result)
+        if result.get("join_risk") == "HIGH":
+            return ToolExecutionResult(
+                ok=False,
+                content={
+                    "error": {
+                        "type": "JOIN_KEY_ERROR",
+                        "message": "High join explosion risk detected.",
+                        "join_type_inferred": result.get("join_type_inferred"),
+                        "recommendation": result.get("recommendation"),
+                        "cardinality": result.get("cardinality"),
+                    }
+                },
+            )
         return ToolExecutionResult(ok=True, content=result)
     except Exception as exc:  # noqa: BLE001
-        return ToolExecutionResult(ok=False, content={"error": str(exc)})
+        return ToolExecutionResult(
+            ok=False,
+            content={"error": {"type": "JOIN_KEY_ERROR", "message": str(exc)}},
+        )
