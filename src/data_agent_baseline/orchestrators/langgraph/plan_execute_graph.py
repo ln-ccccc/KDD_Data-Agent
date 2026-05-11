@@ -40,8 +40,22 @@ class LangGraphPlanAndExecuteAgent:
         self.config = config or LangGraphPlanAndExecuteConfig()
 
     def run(self, task: PublicTask) -> AgentRunResult:
-        # 1. HARD GATE: Semantic Validation (disabled for compatibility with current PublicTask schema)
+        # 1. HARD GATE: Semantic Validation (Subagent)
         mapping_dict = "No semantic validation performed."
+        if "delegate_to_data_analyst" in self.tools.handlers:
+            import json
+            print(f"--- [HARD GATE] Launching Semantic Validator for Task {task.task_id} ---")
+            subagent_tool = self.tools.handlers["delegate_to_data_analyst"]
+            sub_input = {
+                "sub_task_description": f"Analyze the following question and probe the database/knowledge base to find exact table names, column names, and categorical values required to answer it. Question: {task.question}",
+                "focus_files": []
+            }
+            subagent_result = subagent_tool(task, sub_input)
+            if subagent_result.ok:
+                mapping_dict = json.dumps(subagent_result.content, ensure_ascii=False, indent=2)
+            else:
+                mapping_dict = f"Semantic Validator failed or returned partial results: {subagent_result.content}"
+            print(f"--- [HARD GATE] Semantic Validator Finished ---")
 
         # 2. PLAN PHASE
         planner_messages = _build_planner_messages(task, self.tools)

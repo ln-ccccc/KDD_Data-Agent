@@ -218,6 +218,13 @@ class LangGraphReActAgent:
                         if model_step.action.upper() in [a.upper() for a in forbidden_actions]:
                             raise ValueError(f"Action '{model_step.action}' is FORBIDDEN in the current state.")
 
+                        # 3. Allowed Next Actions Check (strong guidance, but not a hard block for all tools)
+                        allowed_next_actions = content.get("allowed_next_actions", [])
+                        if allowed_next_actions and model_step.action not in ["answer", "update_plan", "update_cheat_sheet"]:
+                            # We only warn for non-terminal actions if they are not in the list
+                            # In hybrid_graph, we are more lenient to avoid over-pruning
+                            pass
+
             # Recall is an internal memory read, not a tool. If the model tries to call it,
             # return a structured error and keep going.
             if model_step.action == "recall":
