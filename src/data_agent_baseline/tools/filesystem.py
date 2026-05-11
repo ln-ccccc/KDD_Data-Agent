@@ -125,12 +125,68 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
         if res.get("success"):
             schema_rows = res.get("rows", [])
             schema_cols = res.get("columns", [])
+            aggregation_candidate_fields: list[dict[str, object]] = []
+            aggregation_hints = (
+                "spent",
+                "amount",
+                "total",
+                "count",
+                "revenue",
+                "cost",
+                "remaining",
+                "expenditure",
+                "expense",
+            )
+            
+            def is_aggregation_candidate(name: str) -> bool:
+                lowered = name.lower()
+                return any(h in lowered for h in aggregation_hints)
+            
+            def parse_struct_fields(struct_type: str) -> list[tuple[str, str]]:
+                import re
+                
+                text = struct_type.strip()
+                if not text.upper().startswith("STRUCT(") or not text.endswith(")"):
+                    return []
+                inner = text[len("STRUCT("):-1]
+                parts = [p.strip() for p in inner.split(",") if p.strip()]
+                parsed: list[tuple[str, str]] = []
+                for part in parts:
+                    match = re.match(r'^\s*(".*?"|[A-Za-z0-9_]+)\s+([A-Za-z0-9_]+)\s*$', part)
+                    if match is None:
+                        continue
+                    name = match.group(1).strip().strip('"')
+                    dtype = match.group(2).strip()
+                    parsed.append((name, dtype))
+                return parsed
             
             # Enhance schema with distinct values for VARCHAR/String columns
             enhanced_schema = []
             for row in schema_rows:
                 col_name = row[0]
                 col_type = row[1]
+                
+                if isinstance(col_name, str) and isinstance(col_type, str):
+                    if col_name == "r" and "STRUCT(" in col_type.upper():
+                        for nested_name, nested_type in parse_struct_fields(col_type):
+                            if is_aggregation_candidate(nested_name):
+                                aggregation_candidate_fields.append(
+                                    {
+                                        "source_path": relative_path,
+                                        "field": f"r.{nested_name}",
+                                        "name": nested_name,
+                                        "type": nested_type,
+                                    }
+                                )
+                    elif is_aggregation_candidate(col_name):
+                        aggregation_candidate_fields.append(
+                            {
+                                "source_path": relative_path,
+                                "field": col_name,
+                                "name": col_name,
+                                "type": col_type,
+                            }
+                        )
                 
                 # If it's a string/varchar or integer type, fetch some distinct values
                 distinct_values = []
@@ -168,6 +224,11 @@ def get_data_schema(task: PublicTask, relative_path: str) -> dict[str, object]:
                 "path": relative_path,
                 "schema": enhanced_schema,
                 "columns": schema_cols,
+                "aggregation_candidate_fields": aggregation_candidate_fields,
+                "metric_resolution_note": (
+                    "If your target metric matches any aggregation_candidate_fields, prefer using them directly "
+                    "before joining raw transaction tables."
+                ),
                 "note": "Schema obtained via DuckDB DESCRIBE. Categorical columns include distinct value samples to help you formulate exact WHERE clauses without guessing."
             }
         else:

@@ -54,7 +54,9 @@ If duplicates exist → define strategy (e.g., latest, max)
   - wrong value mapping
 
 [7] KNOWLEDGE FILE
-- If knowledge.md exists, you MUST read it before filtering
+- If knowledge.md exists, you MUST read it before writing ANY SQL.
+- Metric definitions in knowledge.md OVERRIDE your assumptions.
+- After reading, you MUST explicitly state which definition applies to the question and how it maps to a concrete field.
 
 ====================
 ERROR RECOVERY RULES
@@ -77,12 +79,32 @@ You MUST NOT try more than 2 blind SQL fixes.
 WORKFLOW (STRICT)
 ====================
 
-Step 1: get_data_schema
-Step 2: understand structure (no guessing)
-Step 3: check value space if filtering
-Step 4: verify join keys
-Step 5: execute SQL
-Step 6: answer
+Step 0: PARSE QUESTION
+  - Identify the target metric (e.g., "cost", "attendance", "budget").
+  - State it explicitly.
+
+Step 1: get_data_schema for ALL relevant files
+
+Step 2: METRIC → FIELD RESOLUTION (MANDATORY)
+  - Map the target metric to the MOST DIRECT field available in schema.
+  - Ask: "Does any table already have a pre-aggregated column for this?"
+  - If YES → use it directly, do NOT join raw transaction tables.
+  - If NO → identify raw source + required aggregation.
+  - State mapping explicitly, e.g. metric="cost" → file=csv/budget.csv → field=spent.
+
+Step 3: READ knowledge.md if present
+  - Apply metric definitions from knowledge.md.
+  - Override your assumption if knowledge.md contradicts it.
+  - Re-state the final metric→field mapping after applying knowledge.md.
+
+Step 4: CHECK JOIN NECESSITY
+  - Only join if the direct field does NOT exist.
+  - Fewer joins = fewer errors.
+
+Step 5: check value space if filtering
+Step 6: verify join keys (if joins needed)
+Step 7: execute SQL
+Step 8: answer
 
 ====================
 OUTPUT FORMAT
@@ -132,6 +154,9 @@ Reject the answer if it has:
 - Redundant columns not asked for.
 - Missing rows or data mismatch.
 - Logical errors (e.g., ignoring 0-value entities in a minimum calculation).
+- Used transaction-level tables when a pre-aggregated field was available and more appropriate.
+- Joined more tables than necessary to answer the question.
+- Did not apply metric definitions from knowledge.md when knowledge.md exists.
 
 If correct, return {"status": "PASS", "reason": "..."}.
 If incorrect, return {"status": "REJECT", "reason": "..."} with clear fix instructions.
@@ -156,6 +181,10 @@ def build_system_prompt(tool_descriptions: str, system_prompt: str | None = None
 def build_task_prompt(task: PublicTask) -> str:
     return (
         f"Question: {task.question}\n"
+        "Before writing SQL:\n"
+        "1. Identify the metric in the question.\n"
+        "2. Find the most direct field in the schema for that metric.\n"
+        "3. If knowledge.md exists, read it and apply its metric definitions.\n"
         "All tool file paths are relative to the task context directory. "
         "When you have the final table, call the `answer` tool."
     )
