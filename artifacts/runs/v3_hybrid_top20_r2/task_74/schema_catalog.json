@@ -1,0 +1,86 @@
+{
+  "task_id": "task_74",
+  "question": "Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_74/context",
+  "tables": [
+    {
+      "source_file": "csv/superhero.csv",
+      "source_type": "csv",
+      "table_name": "superhero",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '5', '9', '10', '11', '14', '15', '16', '17', '18']"
+        },
+        {
+          "name": "superhero_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Abe Sapien', 'Abomination', 'Abraxas', 'Adam Monroe', 'Agent 13', 'Alan Scott', 'Alex Mercer', 'Alfred Pennyworth', 'Allan Quatermain', 'Angel']"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Charles Chandler', '-', 'Abraxas', 'Sharon Carter', 'Christoph Nord', 'Alexander J. Mercer', 'Alfred Thaddeus Crane Pennyworth', 'Angel Salvadore Bohusk', 'Scott Lang', 'Jason Wynn']"
+        },
+        {
+          "name": "gender_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '1', '3']"
+        },
+        {
+          "name": "eye_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['9', '14', '30', '31', '22', '28', '35', '16', '15', '2']"
+        },
+        {
+          "name": "hair_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['9', '31', '22', '29', '14', '18', '10', '11', '28', '26']"
+        },
+        {
+          "name": "skin_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['14', '31', '28', '22', '1', '7', '23', '4', '13', '12']"
+        },
+        {
+          "name": "race_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['55', '28', '5', '42', '52', '2', '44', '9', '34', '17']"
+        },
+        {
+          "name": "publisher_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['13', '3', '4', '25', '1', '8', '21', '6', '19', '7']"
+        },
+        {
+          "name": "alignment_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '1', '3']"
+        },
+        {
+          "name": "height_cm",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['191', '0', '173', '180', '244', '257', '183', '165', '163', '229']"
+        },
+        {
+          "name": "weight_kg",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['441', '65', '0', '122', '88', '81', '104', '108', '173', '101']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/colour.json",
+      "source_type": "json",
+      "table_name": "colour",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(id BIGINT, colour VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    }
+  ]
+}

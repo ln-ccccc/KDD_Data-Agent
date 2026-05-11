@@ -1,0 +1,31 @@
+{
+  "task_id": "task_26",
+  "question": "How many members of the Student_Club have major in 'Physics Teaching'?",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_26/context",
+  "tables": [
+    {
+      "source_file": "json/member.json",
+      "source_type": "json",
+      "table_name": "member",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(member_id VARCHAR, first_name VARCHAR, last_name VARCHAR, email VARCHAR, \"position\" VARCHAR, t_shirt_size VARCHAR, phone VARCHAR, zip BIGINT, link_to_major VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "json/major.json",
+      "source_type": "json",
+      "table_name": "major",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(major_id VARCHAR, major_name VARCHAR, department VARCHAR, college VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    }
+  ]
+}

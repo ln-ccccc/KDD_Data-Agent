@@ -156,22 +156,22 @@ class ReActAgent:
                     if isinstance(last_obs, dict) and "content" in last_obs:
                         content = last_obs["content"]
                         if isinstance(content, dict):
-                            # 1. Blocked Operations Check
+                            # 1. Blocked Operations Check (capability hard block)
                             blocked_ops = content.get("blocked_operations", [])
-                            if model_step.action.upper() in [op.upper() for op in blocked_ops]:
-                                raise ValueError(f"Action '{model_step.action}' is BLOCKED by the system. Reason: {content.get('error_message', 'Capability missing')}. Choose an alternative path.")
-                            
-                            # 2. Allowed Next Actions Check
-                            allowed_intents = content.get("allowed_next_actions", [])
-                            if allowed_intents:
-                                allowed_tools = []
-                                for intent in allowed_intents:
-                                    allowed_tools.extend(INTENT_TOOL_MAP.get(intent.upper(), []))
-                                
-                                if model_step.action not in allowed_tools:
-                                    raise ValueError(f"Action '{model_step.action}' is NOT allowed at this state. You MUST choose one of the following intents: {allowed_intents}")
+                            blocked_tool_map = {
+                                "READ_SQLITE": {"execute_context_sql", "inspect_sqlite_schema"},
+                                "READ_EXCEL": {"execute_duckdb_sql"},
+                            }
+                            blocked_tools = set()
+                            for op in blocked_ops:
+                                blocked_tools.update(blocked_tool_map.get(str(op).upper(), set()))
+                            if model_step.action in blocked_tools:
+                                raise ValueError(
+                                    f"Action '{model_step.action}' is BLOCKED by the system. "
+                                    f"Reason: {content.get('error_message', 'Capability missing')}."
+                                )
 
-                            # 3. Forbidden Actions Check
+                            # 2. Forbidden Actions Check (state hard block)
                             forbidden_actions = content.get("forbidden_actions", [])
                             if model_step.action.upper() in [a.upper() for a in forbidden_actions]:
                                 raise ValueError(f"Action '{model_step.action}' is FORBIDDEN in the current state (e.g., cannot submit answer if result is empty).")

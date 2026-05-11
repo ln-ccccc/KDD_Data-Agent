@@ -1,0 +1,36 @@
+{
+  "task_id": "task_169",
+  "question": "What was the average monthly consumption of customers in SME for the year 2013?",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_169/context",
+  "tables": [
+    {
+      "source_file": "csv/yearmonth.csv",
+      "source_type": "csv",
+      "table_name": "yearmonth",
+      "columns": [
+        {
+          "name": "CustomerID",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['49140', '49141', '49142', '49146', '49147', '49149', '49150', '49151', '49154', '49160']"
+        },
+        {
+          "name": "Date",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['201307', '201309', '201208', '201303', '201305', '201306', '201308', '201209', '201203', '201201']"
+        },
+        {
+          "name": "Consumption",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "db/customers.db",
+      "source_type": "sqlite",
+      "table_name": "customers",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "task_id": "task_180",
+  "question": "For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012.",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_180/context",
+  "tables": [
+    {
+      "source_file": "csv/yearmonth.csv",
+      "source_type": "csv",
+      "table_name": "yearmonth",
+      "columns": [
+        {
+          "name": "CustomerID",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['49143', '49145', '49148', '49152', '49153', '49165', '49180', '49183', '49191', '49194']"
+        },
+        {
+          "name": "Date",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['201307', '201309', '201208', '201303', '201305', '201306', '201308', '201209', '201203', '201201']"
+        },
+        {
+          "name": "Consumption",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "db/transactions_1k.db",
+      "source_type": "sqlite",
+      "table_name": "transactions_1k",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

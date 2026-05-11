@@ -112,7 +112,7 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
     except Exception as e:
         err_msg = str(e)
         error_type = "EXECUTION_ERROR"
-        allowed_actions = ["LIST_CONTEXT", "GET_DATA_SCHEMA", "INSPECT_SQLITE_SCHEMA"]
+        allowed_actions = ["REWRITE_SQL", "GET_DATA_SCHEMA", "CHECK_VALUE_SPACE"]
         blocked_ops = []
 
         # Error Classification Logic
@@ -122,10 +122,10 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
         elif "Catalog Error" in err_msg:
             if "does not exist" in err_msg or "not found" in err_msg:
                 error_type = "SCHEMA_ERROR"
-                allowed_actions = ["GET_DATA_SCHEMA", "INSPECT_SQLITE_SCHEMA"]
+                allowed_actions = ["GET_DATA_SCHEMA", "INSPECT_SQLITE_SCHEMA", "REWRITE_SQL"]
         elif "IO Error" in err_msg or "No such file or directory" in err_msg:
             error_type = "FILE_NOT_FOUND"
-            allowed_actions = ["LIST_CONTEXT"]
+            allowed_actions = ["LIST_CONTEXT", "REWRITE_SQL"]
         
         # Extension capability check
         if "sqlite" in err_msg.lower() and not CAPABILITIES["sqlite"]:

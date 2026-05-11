@@ -104,9 +104,28 @@ class OpenAIModelAdapter(ModelAdapter):
         if not choices:
             raise ModelError("Model response missing choices.")
         content = choices[0].message.content
-        if not isinstance(content, str):
-            raise ModelError("Model response missing text content.")
-        return content
+        if isinstance(content, str):
+            return content
+        # Some OpenAI-compatible gateways return segmented content blocks.
+        if isinstance(content, list):
+            text_parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    text_parts.append(item)
+                    continue
+                if isinstance(item, dict):
+                    text_val = item.get("text")
+                    if isinstance(text_val, str):
+                        text_parts.append(text_val)
+                        continue
+                    if item.get("type") == "text":
+                        nested = item.get("content")
+                        if isinstance(nested, str):
+                            text_parts.append(nested)
+            merged = "".join(text_parts).strip()
+            if merged:
+                return merged
+        raise ModelError("Model response missing text content.")
 
 
 class ScriptedModelAdapter(ModelAdapter):

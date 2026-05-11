@@ -1,0 +1,31 @@
+{
+  "task_id": "task_145",
+  "question": "Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_145/context",
+  "tables": [
+    {
+      "source_file": "csv/attendance.csv",
+      "source_type": "csv",
+      "table_name": "attendance",
+      "columns": [
+        {
+          "name": "link_to_event",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recI43CzsZ0Q625ma', 'recIuIXdbLe5j5vCA', 'recmbOVHSyzXQZpQr', 'recoVo6dFSzG1ypX7', 'recsgSUqFCJqekzL5', 'recvCUOytx5jPw7kh', 'reczhS8wix6Kzbp9P', 'rec2N69DMcrqN9PJC', 'rec5XDvJLyxDsGZWc', 'recEVTik3MlqbvLFi']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recD078PnS3x2doBe', 'recEFd8s6pkrTt4Pz', 'recQaxyXBQG5BBtD0', 'recL94zpn6Xh6kQii', 'recsTO4OZIF9rbubk', 'reco0mr8dXTgs5wWA', 'recxBj3tjKTGHqucS', 'recUdRhbhcEO1Hk5r', 'rec4BLdZHS2Blfp4v', 'rec280Sk7o31iG0Tx']"
+        }
+      ]
+    },
+    {
+      "source_file": "db/event.db",
+      "source_type": "sqlite",
+      "table_name": "event",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}

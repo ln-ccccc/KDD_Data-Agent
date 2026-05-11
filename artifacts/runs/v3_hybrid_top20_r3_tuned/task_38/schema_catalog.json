@@ -1,0 +1,115 @@
+{
+  "task_id": "task_38",
+  "question": "List all the withdrawals in cash transactions that the client with the id 3356 makes.",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_38/context",
+  "tables": [
+    {
+      "source_file": "csv/disp.csv",
+      "source_type": "csv",
+      "table_name": "disp",
+      "columns": [
+        {
+          "name": "disp_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '5', '9', '10', '11', '14', '15', '16', '17', '18']"
+        },
+        {
+          "name": "client_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '5', '9', '10', '11', '14', '15', '16', '17', '18']"
+        },
+        {
+          "name": "account_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '5', '9', '10', '11', '14', '15', '16', '17', '18']"
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['OWNER', 'DISPONENT']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/trans.csv",
+      "source_type": "csv",
+      "table_name": "trans",
+      "columns": [
+        {
+          "name": "trans_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['228373', '228374', '228375', '228376', '228380', '228381', '228383', '228391', '228392', '228393']"
+        },
+        {
+          "name": "account_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['1', '3', '4', '6', '7', '8', '12', '13', '19', '20']"
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['VYDAJ', 'PRIJEM', 'VYBER']"
+        },
+        {
+          "name": "operation",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['PREVOD NA UCET', 'VYBER KARTOU', 'PREVOD Z UCTU', 'VYBER', 'VKLAD']"
+        },
+        {
+          "name": "amount",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['7700', '16400', '20000', '10100', '1100', '800', '600', '1600', '2800', '2900']"
+        },
+        {
+          "name": "balance",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['73925', '76640', '76885', '58702', '73716', '48093', '57983', '61625', '38357', '65664']"
+        },
+        {
+          "name": "k_symbol",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: [' ', 'SIPO', 'POJISTNE', 'DUCHOD', 'SANKC. UROK', 'SLUZBY', 'UVER', 'UROK']"
+        },
+        {
+          "name": "bank",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['YZ', 'MN', 'IJ', 'UV', 'CD', 'EF', 'ST', 'WX', 'KL', 'GH']"
+        },
+        {
+          "name": "account",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['41403269', '89597016', '24485939', '59972357', '89899795', '66297393', '150186', '34452903', '93210345', '38470870']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/client.json",
+      "source_type": "json",
+      "table_name": "client",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(client_id BIGINT, gender VARCHAR, birth_date DATE, district_id BIGINT)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "json/account.json",
+      "source_type": "json",
+      "table_name": "account",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(account_id BIGINT, district_id BIGINT, frequency VARCHAR, date DATE)",
+          "sample_values_str": ""
+        }
+      ]
+    }
+  ]
+}

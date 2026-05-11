@@ -1,0 +1,71 @@
+{
+  "task_id": "task_19",
+  "question": "List the full name of the Student_Club members that grew up in Illinois state.",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_19/context",
+  "tables": [
+    {
+      "source_file": "csv/member.csv",
+      "source_type": "csv",
+      "table_name": "member",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec1x5zBFIqoOuPW8', 'rec280Sk7o31iG0Tx', 'rec2a03QXbFQAUZ7X', 'rec4BLdZHS2Blfp4v', 'recD078PnS3x2doBe', 'recEFd8s6pkrTt4Pz', 'recL94zpn6Xh6kQii', 'recQaxyXBQG5BBtD0', 'recUdRhbhcEO1Hk5r', 'recZN8afUWlE5fZHG']"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Connor', 'Carlo', 'Phillip', 'Adele', 'Casey', 'Trent', 'Rafi', 'Emily', 'Mccauley', 'Maya']"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Guidi', 'Hilton', 'Cullen', 'Snay', 'Deleon', 'Mason', 'Smith', 'Balentine', \"O'Reilly\", 'Nash']"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['luisa.guidi@lpu.edu', 'connor.hilton@lpu.edu', 'sacha.harrison@lpu.edu', 'adele.deleon@lpu.edu', 'trent.smith@lpu.edu', 'rafi.mckee@lpu.edu', 'katy.balentine@lpu.edu', \"dean.o'reilly@lpu.edu\", 'emily.jaquith@lpu.edu', 'edwardo.ing@lpu.edu']"
+        },
+        {
+          "name": "position",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Inactive', 'Treasurer', 'Member', 'President', 'Vice President', 'Secretary']"
+        },
+        {
+          "name": "t_shirt_size",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['X-Large', 'Medium', 'Large', 'Small']"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['928-555-2577', '905-555-5035', '260-555-4328', '397-555-3444', '716-555-3845', '809-555-3360', '540-555-4152', '768-555-2323', '951-555-6777', '176-555-6720']"
+        },
+        {
+          "name": "zip",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['7080', '76901', '12203', '28092', '79106', '47711', '60089', '35640', '46123', '21801']"
+        },
+        {
+          "name": "link_to_major",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recdIBgeU38UbV2sy', 'recaJdSK83k6ekRJL', 'recxRBSgVYeSEGvyo', 'recR2UFppcwddeAkz', 'recXLfKqMqRArcKNg', 'rec09LedkREyskCNv', 'reclQ8BVvj2w4cQ4V', 'rectez0Ce1okUhv8w', 'recVYIFAwjT91pnv7', 'recxK3MHQFbR9J5uO']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/zip_code.json",
+      "source_type": "json",
+      "table_name": "zip_code",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(zip_code BIGINT, \"type\" VARCHAR, city VARCHAR, county VARCHAR, state VARCHAR, short_state VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "task_id": "task_64",
+  "question": "Please list all the superpowers of 3-D Man.",
+  "context_dir": "/workspace/data/public/extracted/public/input/task_64/context",
+  "tables": [
+    {
+      "source_file": "csv/hero_power.csv",
+      "source_type": "csv",
+      "table_name": "hero_power",
+      "columns": [
+        {
+          "name": "hero_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '5', '9', '11', '14', '15', '16', '17', '22', '26']"
+        },
+        {
+          "name": "power_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['18', '26', '31', '2', '16', '64', '5', '11', '17', '50']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/superpower.csv",
+      "source_type": "csv",
+      "table_name": "superpower",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '5', '9', '10', '11', '14', '15', '16', '17', '18']"
+        },
+        {
+          "name": "power_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Accelerated Healing', 'Cold Resistance', 'Stealth', 'Marksmanship', 'Power Augmentation', 'Animal Attributes', 'Longevity', 'Intelligence', 'Super Strength', 'Energy Blasts']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/superhero.json",
+      "source_type": "json",
+      "table_name": "superhero",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(id BIGINT, superhero_name VARCHAR, full_name VARCHAR, gender_id BIGINT, eye_colour_id BIGINT, hair_colour_id BIGINT, skin_colour_id BIGINT, race_id BIGINT, publisher_id BIGINT, alignment_id BIGINT, height_cm BIGINT, weight_kg BIGINT)",
+          "sample_values_str": ""
+        }
+      ]
+    }
+  ]
+}
