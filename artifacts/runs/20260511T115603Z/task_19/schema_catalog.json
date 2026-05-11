@@ -1,0 +1,88 @@
+{
+  "task_id": "task_19",
+  "question": "List the full name of the Student_Club members that grew up in Illinois state.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_19/context",
+  "tables": [
+    {
+      "source_file": "temp_zip_state.csv",
+      "source_type": "csv",
+      "table_name": "temp_zip_state",
+      "columns": [
+        {
+          "name": "zip_code",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['544', '601', '670', '680', '751', '925', '934', '936', '981', '1033']"
+        },
+        {
+          "name": "state",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['North Carolina', 'California', 'Pennsylvania', 'Indiana', 'Arkansas', 'Alaska', 'Vermont', 'Virginia', 'Hawaii', 'Maryland']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/zip_code.json",
+      "source_type": "json",
+      "table_name": "zip_code",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(zip_code BIGINT, \"type\" VARCHAR, city VARCHAR, county VARCHAR, state VARCHAR, short_state VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/member.csv",
+      "source_type": "csv",
+      "table_name": "member",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recUdRhbhcEO1Hk5r', 'recTjHY5xXhvkCdVT', 'recWh2lJVOT6HjChK', 'recro8T1MPMwRadVH', 'recjHj4BS5A541n9v', 'recD078PnS3x2doBe', 'rec3pH4DxMcWHMRB7', 'reccSUPwy30AeZLEb', 'reccW7q1KkhSKZsea', 'rec1x5zBFIqoOuPW8']"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Casey', 'Adele', 'Maya', 'Carlo', 'Phillip', 'Rafi', 'Brent', 'Randy', 'Keith', 'Madelyn']"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Gilmour', 'Jaquith', 'Dunlop', 'Hilton', 'Thomason', 'Warren', 'Snay', 'Deleon', 'Hewitt', 'Allen']"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['madelyn.nicholson@lpu.edu', 'randy.woodard@lpu.edu', 'phillip.cullen@lpu.edu', 'matt.snay@lpu.edu', 'casey.mason@lpu.edu', 'sacha.harrison@lpu.edu', 'rafi.mckee@lpu.edu', \"dean.o'reilly@lpu.edu\", 'luisa.guidi@lpu.edu', 'tyler.hewitt@lpu.edu']"
+        },
+        {
+          "name": "position",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Treasurer', 'Inactive', 'Secretary', 'President', 'Member', 'Vice President']"
+        },
+        {
+          "name": "t_shirt_size",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Small', 'X-Large', 'Large', 'Medium']"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['716-555-3845', '809-555-3360', '928-555-2577', '905-555-5035', '397-555-3444', '176-555-6720', '768-555-2323', '954-555-6240', '724-555-5721', '466-555-3483']"
+        },
+        {
+          "name": "zip",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['76901', '27511', '1020', '14606', '12203', '79106', '35640', '46123', '21784', '92307']"
+        },
+        {
+          "name": "link_to_major",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recR2UFppcwddeAkz', 'recxRBSgVYeSEGvyo', 'reclQ8BVvj2w4cQ4V', 'recXLfKqMqRArcKNg', 'recaJdSK83k6ekRJL', 'recdIBgeU38UbV2sy', 'rectez0Ce1okUhv8w', 'recVYIFAwjT91pnv7', 'rec09LedkREyskCNv', 'recxK3MHQFbR9J5uO']"
+        }
+      ]
+    }
+  ]
+}

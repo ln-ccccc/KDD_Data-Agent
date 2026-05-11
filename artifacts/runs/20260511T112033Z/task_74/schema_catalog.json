@@ -1,0 +1,86 @@
+{
+  "task_id": "task_74",
+  "question": "Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_74/context",
+  "tables": [
+    {
+      "source_file": "json/colour.json",
+      "source_type": "json",
+      "table_name": "colour",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(id BIGINT, colour VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/superhero.csv",
+      "source_type": "csv",
+      "table_name": "superhero",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '22', '31', '32', '52', '81', '92', '97', '132', '163']"
+        },
+        {
+          "name": "superhero_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Ardina', 'Atlas', 'Big Man', 'Black Canary', 'Black Flash', 'Boba Fett', 'Captain Epic', 'Cyborg', 'Donna Troy', 'Fighting Spirit']"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Abraxas', 'Sharon Carter', 'Daniel Garrett', 'Mar-Vell', 'Nathaniel Heywood', 'Rory Destine', 'Ronald Raymond', 'Greg Willis', 'Hiro Nakamura', \"Daniel Thomas Rand-K'ai\"]"
+        },
+        {
+          "name": "gender_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2', '3', '1']"
+        },
+        {
+          "name": "eye_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['16', '33', '23', '4', '12', '31', '22', '15', '32', '34']"
+        },
+        {
+          "name": "hair_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['9', '14', '17', '5', '1', '20', '12', '31', '22', '28']"
+        },
+        {
+          "name": "skin_colour_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['13', '8', '19', '23', '4', '24', '33', '31', '22', '28']"
+        },
+        {
+          "name": "race_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['55', '26', '16', '11', '21', '25', '24', '33', '56', '45']"
+        },
+        {
+          "name": "publisher_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '15', '22', '5', '9', '17', '14', '3', '6']"
+        },
+        {
+          "name": "alignment_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['1', '2', '3']"
+        },
+        {
+          "name": "height_cm",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '244', '122', '259', '155', '191', '267', '71', '279', '211']"
+        },
+        {
+          "name": "weight_kg",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['81', '358', '180', '52', '92', '97', '132', '306', '18000', '338']"
+        }
+      ]
+    }
+  ]
+}

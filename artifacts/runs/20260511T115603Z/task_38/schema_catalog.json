@@ -1,0 +1,115 @@
+{
+  "task_id": "task_38",
+  "question": "List all the withdrawals in cash transactions that the client with the id 3356 makes.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_38/context",
+  "tables": [
+    {
+      "source_file": "json/client.json",
+      "source_type": "json",
+      "table_name": "client",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(client_id BIGINT, gender VARCHAR, birth_date DATE, district_id BIGINT)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "json/account.json",
+      "source_type": "json",
+      "table_name": "account",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(account_id BIGINT, district_id BIGINT, frequency VARCHAR, date DATE)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/disp.csv",
+      "source_type": "csv",
+      "table_name": "disp",
+      "columns": [
+        {
+          "name": "disp_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '22', '31', '32', '52', '81', '92', '97', '132', '163']"
+        },
+        {
+          "name": "client_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['50', '74', '107', '130', '139', '150', '167', '173', '192', '200']"
+        },
+        {
+          "name": "account_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '22', '31', '32', '52', '81', '97', '132', '163', '166']"
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['DISPONENT', 'OWNER']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/trans.csv",
+      "source_type": "csv",
+      "table_name": "trans",
+      "columns": [
+        {
+          "name": "trans_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['453121', '453133', '453146', '453154', '453166', '453175', '453202', '453356', '453364', '453377']"
+        },
+        {
+          "name": "account_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['1915', '1951', '1960', '1962', '1976', '1986', '2009', '2027', '2061', '2066']"
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['VYDAJ', 'PRIJEM', 'VYBER']"
+        },
+        {
+          "name": "operation",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['PREVOD NA UCET', 'VKLAD', 'VYBER', 'PREVOD Z UCTU', 'VYBER KARTOU']"
+        },
+        {
+          "name": "amount",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['700', '1400', '6500', '3100', '2700', '13396', '19641', '42000', '5700', '6000']"
+        },
+        {
+          "name": "balance",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['26835', '22714', '15353', '14447', '15111', '13950', '19116', '14545', '16634', '11253']"
+        },
+        {
+          "name": "k_symbol",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['UVER', ' ', 'DUCHOD', 'SANKC. UROK', 'SLUZBY', 'SIPO', 'POJISTNE', 'UROK']"
+        },
+        {
+          "name": "bank",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['UV', 'MN', 'YZ', 'IJ', 'ST', 'KL', 'GH', 'EF', 'WX', 'OP']"
+        },
+        {
+          "name": "account",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '47281622', '70286303', '95864551', '41519075', '93358599', '85781967', '8011526', '51452183', '95404332']"
+        }
+      ]
+    }
+  ]
+}

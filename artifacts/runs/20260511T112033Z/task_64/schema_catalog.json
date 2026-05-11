@@ -1,0 +1,53 @@
+{
+  "task_id": "task_64",
+  "question": "Please list all the superpowers of 3-D Man.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_64/context",
+  "tables": [
+    {
+      "source_file": "json/superhero.json",
+      "source_type": "json",
+      "table_name": "superhero",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(id BIGINT, superhero_name VARCHAR, full_name VARCHAR, gender_id BIGINT, eye_colour_id BIGINT, hair_colour_id BIGINT, skin_colour_id BIGINT, race_id BIGINT, publisher_id BIGINT, alignment_id BIGINT, height_cm BIGINT, weight_kg BIGINT)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/hero_power.csv",
+      "source_type": "csv",
+      "table_name": "hero_power",
+      "columns": [
+        {
+          "name": "hero_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '22', '31', '32', '52', '92', '97', '132', '163', '166']"
+        },
+        {
+          "name": "power_id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['26', '16', '11', '91', '118', '122', '134', '55', '83', '67']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/superpower.csv",
+      "source_type": "csv",
+      "table_name": "superpower",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "power_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Astral Projection', 'Nova Force', 'Hypnokinesis', 'Probability Manipulation', 'Light Control', 'Power Cosmic', 'Omnilingualism', 'Vision - X-Ray', 'Web Creation', 'Phoenix Force']"
+        }
+      ]
+    }
+  ]
+}

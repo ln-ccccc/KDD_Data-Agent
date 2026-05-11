@@ -1,0 +1,108 @@
+{
+  "task_id": "task_86",
+  "question": "Which race was Alex Yoong in when he was in track number less than 20?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_86/context",
+  "tables": [
+    {
+      "source_file": "json/drivers.json",
+      "source_type": "json",
+      "table_name": "drivers",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(driverId BIGINT, driverRef VARCHAR, number BIGINT, code VARCHAR, forename VARCHAR, surname VARCHAR, dob DATE, nationality VARCHAR, url VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/races.csv",
+      "source_type": "csv",
+      "table_name": "races",
+      "columns": [
+        {
+          "name": "raceId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '83', '91', '110', '118', '122']"
+        },
+        {
+          "name": "year",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['2003', '2001', '1997', '1968', '2016', '1998', '1984', '1957', '1955', '1990']"
+        },
+        {
+          "name": "round",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '11', '16', '8', '13', '19', '12', '20', '21', '3']"
+        },
+        {
+          "name": "circuitId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['11', '16', '26', '55', '67', '35', '37', '54', '62', '64']"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Korean Grand Prix', 'Monaco Grand Prix', 'German Grand Prix', 'Belgian Grand Prix', 'Brazilian Grand Prix', 'San Marino Grand Prix', 'Swedish Grand Prix', 'Dutch Grand Prix', 'United States Grand Prix West', 'Caesars Palace Grand Prix']"
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "time",
+          "type": "TIME",
+          "sample_values_str": ""
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['http://en.wikipedia.org/wiki/2008_Australian_Grand...', 'http://en.wikipedia.org/wiki/2008_Turkish_Grand_Pr...', 'http://en.wikipedia.org/wiki/2008_Canadian_Grand_P...', 'http://en.wikipedia.org/wiki/2008_Hungarian_Grand_...', 'http://en.wikipedia.org/wiki/2008_European_Grand_P...', 'http://en.wikipedia.org/wiki/2008_Singapore_Grand_...', 'http://en.wikipedia.org/wiki/2005_German_Grand_Pri...', 'http://en.wikipedia.org/wiki/2004_Brazilian_Grand_...', 'http://en.wikipedia.org/wiki/2003_Australian_Grand...', 'http://en.wikipedia.org/wiki/2003_Canadian_Grand_P...']"
+        }
+      ]
+    },
+    {
+      "source_file": "csv/driverStandings.csv",
+      "source_type": "csv",
+      "table_name": "driverStandings",
+      "columns": [
+        {
+          "name": "driverStandingsId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['15', '22', '31', '32', '52', '81', '92', '97', '132', '163']"
+        },
+        {
+          "name": "raceId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['26', '83', '236', '238', '298', '301', '280', '244', '254', '220']"
+        },
+        {
+          "name": "driverId",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['35', '37', '64', '54', '85', '619', '772', '780', '802', '723']"
+        },
+        {
+          "name": "points",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "position",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['8', '13', '19', '46', '59', '61', '66', '102', '2', '28']"
+        },
+        {
+          "name": "positionText",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['34', '41', '72', '98', '8', '16', '17', '43', '55', '67']"
+        },
+        {
+          "name": "wins",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['0', '11', '10', '7', '1', '12', '2', '8', '13', '5']"
+        }
+      ]
+    }
+  ]
+}

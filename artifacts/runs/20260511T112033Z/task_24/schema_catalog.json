@@ -1,0 +1,36 @@
+{
+  "task_id": "task_24",
+  "question": "How many members attended the \"Women's Soccer\" event?",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_24/context",
+  "tables": [
+    {
+      "source_file": "json/event.json",
+      "source_type": "json",
+      "table_name": "event",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(event_id VARCHAR, event_name VARCHAR, event_date VARCHAR, \"type\" VARCHAR, notes VARCHAR, \"location\" VARCHAR, status VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/attendance.csv",
+      "source_type": "csv",
+      "table_name": "attendance",
+      "columns": [
+        {
+          "name": "link_to_event",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recI43CzsZ0Q625ma', 'recmbOVHSyzXQZpQr', 'recsgSUqFCJqekzL5', 'rec2N69DMcrqN9PJC', 'recEVTik3MlqbvLFi', 'recykdvf4LgsyA3wZ', 'recLKj8BbTNqxFbTb', 'reckYL4xtQWpkTJ8k', 'rec5XDvJLyxDsGZWc', 'recGxVCwaLW3mDIa3']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recUdRhbhcEO1Hk5r', 'recjHj4BS5A541n9v', 'recD078PnS3x2doBe', 'reccW7q1KkhSKZsea', 'reccSUPwy30AeZLEb', 'rec3pH4DxMcWHMRB7', 'recL94zpn6Xh6kQii', 'rec280Sk7o31iG0Tx', 'recttfySfQnYb68u3', 'rec75vvFxgYtHmqxY']"
+        }
+      ]
+    }
+  ]
+}

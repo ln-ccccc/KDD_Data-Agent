@@ -1,0 +1,108 @@
+{
+  "task_id": "task_22",
+  "question": "State the date Connor Hilton paid his/her dues.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_22/context",
+  "tables": [
+    {
+      "source_file": "members_temp.csv",
+      "source_type": "csv",
+      "table_name": "members_temp",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recUdRhbhcEO1Hk5r', 'recD078PnS3x2doBe', 'rec280Sk7o31iG0Tx', 'recL94zpn6Xh6kQii', 'reco0mr8dXTgs5wWA', 'recsTO4OZIF9rbubk', 'rec2a03QXbFQAUZ7X', 'recxBj3tjKTGHqucS', 'rec4O9rmGnLx3j8vt', 'rec75vvFxgYtHmqxY']"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Angela', 'Luisa', 'Sacha', 'Christof', 'Matthew', 'Dean', 'Amy', 'Kevin', 'Sherri', 'Tyler']"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Firth', 'Pierce', 'Mclean', 'Gerke', 'Ramsey', 'Mason', 'Ratcliffe', 'Balentine', 'Mccray', 'Hilton']"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['amy.firth@lpu.edu', 'randy.woodard@lpu.edu', 'phillip.cullen@lpu.edu', 'matt.snay@lpu.edu', 'casey.mason@lpu.edu', 'angela.sanders@lpu.edu', 'carlo.jacobs@lpu.edu', 'vincent.ratcliffe@lpu.edu', 'connor.hilton@lpu.edu', 'tyler.hewitt@lpu.edu']"
+        },
+        {
+          "name": "position",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Treasurer', 'Secretary', 'President', 'Inactive', 'Member', 'Vice President']"
+        },
+        {
+          "name": "t_shirt_size",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Medium', 'Large', 'Small', 'X-Large']"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['716-555-3845', '809-555-3360', '442-555-5882', '475-555-3802', '727-555-2732', '768-555-2323', '454-555-7970', '933-555-4147', '(651) 928-4507', '738-555-2267']"
+        },
+        {
+          "name": "zip",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['76901', '27511', '21801', '8861', '12203', '79106', '35640', '46123', '21784', '92307']"
+        },
+        {
+          "name": "link_to_major",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recxRBSgVYeSEGvyo', 'reclQ8BVvj2w4cQ4V', 'rec7BxKpjJ7bNph3O', 'recCk8lCDOTRp6rKN', 'recf3mPmWq4JXKf4L', 'rec9CqGCGV8Y8rOSY', 'recuN6taqCVkaZMZS', 'recAiT3yTABWypvHu', 'rec1N0upiVLy5esTO', 'recXLfKqMqRArcKNg']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/member.json",
+      "source_type": "json",
+      "table_name": "member",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(member_id VARCHAR, first_name VARCHAR, last_name VARCHAR, email VARCHAR, \"position\" VARCHAR, t_shirt_size VARCHAR, phone VARCHAR, zip BIGINT, link_to_major VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/income.csv",
+      "source_type": "csv",
+      "table_name": "income",
+      "columns": [
+        {
+          "name": "income_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recihQPJWBjlTlS5i', 'recXFdA0P6QkxSqg8', 'recMFy9sJHhuPZ4cz', 'reco9QqFb4mD5TRcW', 'reczYkzM4iPYdi8rh', 'rec0s9ZrO15zhzUeE', 'recVPX6dYgYBJHMhL', 'recbCZLKaq6fihDEu', 'recudPRjARER5Nt9B', 'recCRWMfFqifuKMc6']"
+        },
+        {
+          "name": "date_received",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "amount",
+          "type": "BIGINT",
+          "sample_values_str": "Sample values: ['3000', '50', '200', '1000']"
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Fundraising', 'Sponsorship', 'Dues', 'School Appropration']"
+        },
+        {
+          "name": "notes",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Secured donations to help pay for speaker gifts.', 'Annual funding from Student Government.', 'Ad revenue for use on flyers used to advertise upc...']"
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recL94zpn6Xh6kQii', 'rec280Sk7o31iG0Tx', 'recUdRhbhcEO1Hk5r', 'rec28ORZgcm1dtqBZ', 'recZ4PkGERzl9ziHO', 'rec1x5zBFIqoOuPW8', 'recTjHY5xXhvkCdVT', 'recro8T1MPMwRadVH', 'recWh2lJVOT6HjChK', 'recZN8afUWlE5fZHG']"
+        }
+      ]
+    }
+  ]
+}
