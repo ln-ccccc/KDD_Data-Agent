@@ -205,6 +205,18 @@ def _answer(_: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     )
 
 
+def _extract_where_columns(sql: str) -> list[str]:
+    """Extract column names from WHERE clause using regex (v2 simplified)."""
+    where_match = re.search(r"where(.*)", sql, re.IGNORECASE | re.DOTALL)
+    if not where_match:
+        return []
+
+    where_clause = where_match.group(1)
+    # Match identifiers followed by comparison operators or IN
+    cols = re.findall(r"([a-zA-Z_][a-zA-Z0-9_]*)\s*(=|>|<|IN|LIKE|IS)", where_clause, re.IGNORECASE)
+    return list(set([c[0] for c in cols]))
+
+
 @dataclass(slots=True)
 class ToolRegistry:
     specs: dict[str, ToolSpec]
@@ -260,22 +272,87 @@ class ToolRegistry:
                 }
             }
 
+    def _run_post_sql_guards(
+        self,
+        task: PublicTask,
+        action: str,
+        action_input: dict[str, Any],
+        tool_result: ToolExecutionResult,
+    ) -> dict[str, Any]:
+        """Run deterministic guards after SQL execution (must-trigger)."""
+        if action not in {"execute_duckdb_sql", "execute_context_sql"}:
+            return {}
+        if not tool_result.ok or "skill_answer_guard" not in self.handlers:
+            return {}
+
+        sql = str(action_input.get("sql", ""))
+        required_columns = _extract_where_columns(sql)
+
+        # Hard-coded rules (as requested by user)
+        if "Thrombosis" in sql and "Thrombosis" not in required_columns:
+            required_columns.append("Thrombosis")
+
+        content = tool_result.content
+        if not isinstance(content, dict):
+            return {}
+
+        guard_input = {
+            "columns": content.get("columns", []),
+            "rows": content.get("rows", []),
+            "required_columns": required_columns,
+        }
+
+        try:
+            guard_res = self.handlers["skill_answer_guard"](task, guard_input)
+            return {
+                "answer_guard": {
+                    "ok": guard_res.ok,
+                    "content": guard_res.content,
+                }
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "answer_guard": {
+                    "ok": False,
+                    "content": {"error": f"answer guard failed: {exc}"},
+                }
+            }
+
     def execute(self, task: PublicTask, action: str, action_input: dict[str, Any]) -> ToolExecutionResult:
         """执行指定工具"""
         # 验证工具是否存在
         if action not in self.handlers:
             raise KeyError(f"Unknown tool: {action}")
 
+        # 1. Pre-execution guards
         guard_info = self._run_sql_guard_skills(task, action, action_input)
+
+        # 2. Execution
         tool_result = self.handlers[action](task, action_input)
-        if not guard_info:
+
+        # 3. Post-execution guards
+        post_guard_info = self._run_post_sql_guards(task, action, action_input, tool_result)
+
+        # Merge guard info
+        all_guard_info = {**guard_info, **post_guard_info}
+
+        if not all_guard_info:
             return tool_result
 
         if isinstance(tool_result.content, dict):
             merged_content = dict(tool_result.content)
-            merged_content["_skill_checks"] = guard_info
+            merged_content["_skill_checks"] = all_guard_info
+
+            # Intercept: if any guard failed, the overall tool execution should be considered failed
+            # This prevents the agent from ignoring critical validation errors.
+            is_ok = tool_result.ok
+            for g in all_guard_info.values():
+                if not g.get("ok", True):
+                    is_ok = False
+                    break
+
             return ToolExecutionResult(
-                ok=tool_result.ok,
+                ok=is_ok,
                 content=merged_content,
                 is_terminal=tool_result.is_terminal,
                 answer=tool_result.answer,
