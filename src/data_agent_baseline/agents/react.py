@@ -80,6 +80,24 @@ def parse_model_step(raw_response: str) -> ModelStep:
     )
 
 
+# Intent-based Action Mapping for Strong Constraints
+INTENT_TOOL_MAP = {
+    "INSPECT_SCHEMA": ["get_data_schema", "inspect_sqlite_schema", "retrieve_schema_context"],
+    "CHECK_VALUE_SPACE": ["execute_duckdb_sql", "execute_context_sql", "read_csv", "read_json"],
+    "RELAX_FILTER": ["execute_duckdb_sql", "execute_context_sql"],
+    "VERIFY_JOIN": ["execute_duckdb_sql", "execute_context_sql", "get_data_schema", "inspect_sqlite_schema"],
+    "REWRITE_SQL": ["execute_duckdb_sql", "execute_context_sql"],
+    "LIST_CONTEXT": ["list_context"],
+    "READ_DOC": ["read_doc", "search_knowledge_doc", "list_knowledge_headings", "read_knowledge_section"],
+    "GET_DATA_SCHEMA": ["get_data_schema"],
+    "INSPECT_SQLITE_SCHEMA": ["inspect_sqlite_schema"],
+    "EXECUTE_PYTHON": ["execute_python"],
+    "CONTINUE": ["execute_duckdb_sql", "execute_context_sql", "execute_python", "get_data_schema", "inspect_sqlite_schema", "list_context", "read_csv", "read_doc", "read_json", "search_knowledge_doc"],
+    "ANSWER": ["answer"],
+    "FURTHER_ANALYSIS": ["execute_duckdb_sql", "execute_context_sql", "execute_python", "extract_dataframe_stats"]
+}
+
+
 class ReActAgent:
     def __init__(
         self,
@@ -131,6 +149,33 @@ class ReActAgent:
             llm_elapsed = round(perf_counter() - llm_started_at, 6)
             try:
                 model_step = parse_model_step(raw_response)
+                
+                # Strong Constraint Validation (Orchestrator Level)
+                if state.steps:
+                    last_obs = state.steps[-1].observation
+                    if isinstance(last_obs, dict) and "content" in last_obs:
+                        content = last_obs["content"]
+                        if isinstance(content, dict):
+                            # 1. Blocked Operations Check
+                            blocked_ops = content.get("blocked_operations", [])
+                            if model_step.action.upper() in [op.upper() for op in blocked_ops]:
+                                raise ValueError(f"Action '{model_step.action}' is BLOCKED by the system. Reason: {content.get('error_message', 'Capability missing')}. Choose an alternative path.")
+                            
+                            # 2. Allowed Next Actions Check
+                            allowed_intents = content.get("allowed_next_actions", [])
+                            if allowed_intents:
+                                allowed_tools = []
+                                for intent in allowed_intents:
+                                    allowed_tools.extend(INTENT_TOOL_MAP.get(intent.upper(), []))
+                                
+                                if model_step.action not in allowed_tools:
+                                    raise ValueError(f"Action '{model_step.action}' is NOT allowed at this state. You MUST choose one of the following intents: {allowed_intents}")
+
+                            # 3. Forbidden Actions Check
+                            forbidden_actions = content.get("forbidden_actions", [])
+                            if model_step.action.upper() in [a.upper() for a in forbidden_actions]:
+                                raise ValueError(f"Action '{model_step.action}' is FORBIDDEN in the current state (e.g., cannot submit answer if result is empty).")
+
                 tool_started_at = perf_counter()
                 tool_result = self.tools.execute(task, model_step.action, model_step.action_input)
                 tool_elapsed = round(perf_counter() - tool_started_at, 6)

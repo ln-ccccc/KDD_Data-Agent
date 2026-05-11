@@ -191,6 +191,34 @@ class LangGraphReActAgent:
 
             assert model_step is not None  # for type-checkers
 
+            # Strong Constraint Validation (Orchestrator Level)
+            from data_agent_baseline.agents.react import INTENT_TOOL_MAP
+            if rt.steps:
+                last_step = rt.steps[-1]
+                last_obs = last_step.observation
+                if isinstance(last_obs, dict) and "content" in last_obs:
+                    content = last_obs["content"]
+                    if isinstance(content, dict):
+                        # 1. Blocked Operations Check
+                        blocked_ops = content.get("blocked_operations", [])
+                        if model_step.action.upper() in [op.upper() for op in blocked_ops]:
+                            raise ValueError(f"Action '{model_step.action}' is BLOCKED by the system. Reason: {content.get('error_message', 'Capability missing')}. Choose an alternative path.")
+                        
+                        # 2. Allowed Next Actions Check
+                        allowed_intents = content.get("allowed_next_actions", [])
+                        if allowed_intents:
+                            allowed_tools = []
+                            for intent in allowed_intents:
+                                allowed_tools.extend(INTENT_TOOL_MAP.get(intent.upper(), []))
+                            
+                            if model_step.action not in allowed_tools:
+                                raise ValueError(f"Action '{model_step.action}' is NOT allowed at this state. You MUST choose one of the following intents: {allowed_intents}")
+
+                        # 3. Forbidden Actions Check
+                        forbidden_actions = content.get("forbidden_actions", [])
+                        if model_step.action.upper() in [a.upper() for a in forbidden_actions]:
+                            raise ValueError(f"Action '{model_step.action}' is FORBIDDEN in the current state.")
+
             # Recall is an internal memory read, not a tool. If the model tries to call it,
             # return a structured error and keep going.
             if model_step.action == "recall":

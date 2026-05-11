@@ -37,13 +37,14 @@ def inspect_sqlite_schema(path: Path) -> dict[str, object]:
             "status": "SUCCESS",
             "path": str(path),
             "tables": tables,
+            "allowed_next_actions": ["EXECUTE_CONTEXT_SQL"]
         }
     except Exception as e:
         return {
             "status": "ERROR",
             "error_type": "FILE_ACCESS_ERROR",
             "error_message": str(e),
-            "allowed_next_actions": ["list_context", "Check if the file is a valid SQLite database"]
+            "allowed_next_actions": ["LIST_CONTEXT"]
         }
 
 
@@ -65,7 +66,8 @@ def execute_read_only_sql(
             "status": "ERROR",
             "error_type": "SECURITY_ERROR",
             "error_message": "Only read-only SQL statements (SELECT, WITH, PRAGMA) are allowed.",
-            "allowed_next_actions": ["Rewrite the query using SELECT"]
+            "allowed_next_actions": ["REWRITE_SQL"],
+            "forbidden_actions": ["ANSWER"]
         }
 
     try:
@@ -88,7 +90,8 @@ def execute_read_only_sql(
                     "status": "SUCCESS",
                     "columns": [],
                     "rows": [],
-                    "row_count": 0
+                    "row_count": 0,
+                    "allowed_next_actions": ["CONTINUE"]
                 }
 
             column_names = [item[0] for item in cursor.description]
@@ -107,38 +110,43 @@ def execute_read_only_sql(
             "truncated": truncated,
         }
 
-        # 0-row handling (Zero Result Constraint)
+        # ZERO_RESULT handling (Strict Constraint)
         if len(limited_rows) == 0 and normalized_sql.startswith("select"):
             result["status"] = "ZERO_RESULT"
             result["allowed_next_actions"] = [
-                "inspect_sqlite_schema",
-                "execute_context_sql (using SELECT DISTINCT to verify categorical values)",
-                "read_doc (check knowledge.md for business rules/status codes)"
+                "INSPECT_SQLITE_SCHEMA",
+                "CHECK_VALUE_SPACE",
+                "RELAX_FILTER",
+                "READ_DOC"
             ]
+            result["forbidden_actions"] = ["ANSWER"]
+        else:
+            result["allowed_next_actions"] = ["ANSWER", "FURTHER_ANALYSIS"]
 
         return result
 
     except sqlite3.Error as e:
         err_msg = str(e)
         error_type = "EXECUTION_ERROR"
-        allowed_actions = ["inspect_sqlite_schema", "Verify table/column names"]
+        allowed_actions = ["INSPECT_SQLITE_SCHEMA"]
 
         if "no such table" in err_msg.lower() or "no such column" in err_msg.lower():
             error_type = "SCHEMA_ERROR"
-            allowed_actions = ["inspect_sqlite_schema", "Check for typos or case-sensitivity"]
+            allowed_actions = ["INSPECT_SQLITE_SCHEMA"]
         elif "syntax error" in err_msg.lower():
             error_type = "SYNTAX_ERROR"
-            allowed_actions = ["Check SQLite SQL syntax", "Verify quoting for identifiers"]
+            allowed_actions = ["REWRITE_SQL"]
         elif "interrupted" in err_msg.lower() or "aborted" in err_msg.lower():
             error_type = "TIMEOUT_ERROR"
-            allowed_actions = ["Simplify the query", "Add more filters", "Avoid cross-joins"]
+            allowed_actions = ["REWRITE_SQL"]
 
         return {
             "success": False,
             "status": "ERROR",
             "error_type": error_type,
             "error_message": err_msg,
-            "allowed_next_actions": allowed_actions
+            "allowed_next_actions": allowed_actions,
+            "forbidden_actions": ["ANSWER"]
         }
     except Exception as e:
         return {
@@ -146,5 +154,6 @@ def execute_read_only_sql(
             "status": "ERROR",
             "error_type": "SYSTEM_ERROR",
             "error_message": str(e),
-            "allowed_next_actions": ["Retry with a simpler query"]
+            "allowed_next_actions": ["REWRITE_SQL"],
+            "forbidden_actions": ["ANSWER"]
         }

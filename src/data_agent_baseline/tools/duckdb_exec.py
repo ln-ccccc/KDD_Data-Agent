@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DUCKDB_EXT_DIR = PROJECT_ROOT / ".duckdb_extensions"
 DUCKDB_EXT_DIR.mkdir(exist_ok=True)
 
-# Extension capability mapping (Static for module, updated per connection)
+# Extension capability mapping
 CAPABILITIES = {
     "json": False,
     "sqlite": False,
@@ -55,8 +55,8 @@ def _get_conn(context_root: Path):
 
 def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dict[str, object]:
     """
-    Execute a DuckDB SQL query with structured status and action constraints.
-    Moves from 'prompting' to 'constraint-based' design.
+    Execute a DuckDB SQL query with strong structural constraints.
+    NO natural language in allowed_next_actions.
     """
     conn = _get_conn(context_root)
     try:
@@ -70,7 +70,7 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
                 "row_count": 0,
                 "columns": [],
                 "rows": [],
-                "capabilities": CAPABILITIES
+                "allowed_next_actions": ["CONTINUE"]
             }
 
         column_names = [item[0] for item in cursor.description]
@@ -90,50 +90,52 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
             "columns": column_names,
             "rows": stringified_rows,
             "row_count": len(limited_rows),
-            "truncated": truncated,
-            "capabilities": CAPABILITIES
+            "truncated": truncated
         }
 
-        # 0-row handling (Zero Result Constraint)
+        # ZERO_RESULT handling (Strict Constraint)
         if len(limited_rows) == 0 and sql.strip().upper().startswith("SELECT"):
             result["status"] = "ZERO_RESULT"
             result["allowed_next_actions"] = [
-                "inspect_sqlite_schema",
-                "get_data_schema",
-                "execute_duckdb_sql (using SELECT DISTINCT to verify values)",
-                "read_csv (verify raw data spelling/case)",
-                "read_doc (check business rules in knowledge.md)"
+                "INSPECT_SCHEMA",
+                "CHECK_VALUE_SPACE",
+                "RELAX_FILTER",
+                "VERIFY_JOIN",
+                "READ_DOC"
             ]
+            result["forbidden_actions"] = ["ANSWER"]
+        else:
+            result["allowed_next_actions"] = ["ANSWER", "FURTHER_ANALYSIS"]
             
         return result
 
     except Exception as e:
         err_msg = str(e)
         error_type = "EXECUTION_ERROR"
-        allowed_actions = ["list_context", "get_data_schema", "inspect_sqlite_schema"]
+        allowed_actions = ["LIST_CONTEXT", "GET_DATA_SCHEMA", "INSPECT_SQLITE_SCHEMA"]
         blocked_ops = []
 
         # Error Classification Logic
         if "Parser Error" in err_msg or "syntax error" in err_msg.lower():
             error_type = "SYNTAX_ERROR"
-            allowed_actions = ["Check DuckDB SQL syntax rules", "Simplify the query"]
+            allowed_actions = ["REWRITE_SQL"]
         elif "Catalog Error" in err_msg:
             if "does not exist" in err_msg or "not found" in err_msg:
                 error_type = "SCHEMA_ERROR"
-                allowed_actions = ["get_data_schema", "inspect_sqlite_schema", "Verify table/column names"]
+                allowed_actions = ["GET_DATA_SCHEMA", "INSPECT_SQLITE_SCHEMA"]
         elif "IO Error" in err_msg or "No such file or directory" in err_msg:
             error_type = "FILE_NOT_FOUND"
-            allowed_actions = ["list_context", "Check relative file path in context/"]
+            allowed_actions = ["LIST_CONTEXT"]
         
         # Extension capability check
         if "sqlite" in err_msg.lower() and not CAPABILITIES["sqlite"]:
             error_type = "UNSUPPORTED_FILE_FORMAT"
             blocked_ops.append("READ_SQLITE")
-            allowed_actions = ["Use execute_python with sqlite3 library"]
+            allowed_actions = ["EXECUTE_PYTHON"]
         elif "excel" in err_msg.lower() and not CAPABILITIES["excel"]:
             error_type = "UNSUPPORTED_FILE_FORMAT"
             blocked_ops.append("READ_EXCEL")
-            allowed_actions = ["Use execute_python with pandas read_excel"]
+            allowed_actions = ["EXECUTE_PYTHON"]
 
         return {
             "success": False,
@@ -142,7 +144,7 @@ def execute_duckdb_sql(context_root: Path, sql: str, *, limit: int = 200) -> dic
             "error_message": err_msg,
             "blocked_operations": blocked_ops,
             "allowed_next_actions": allowed_actions,
-            "capabilities": CAPABILITIES
+            "forbidden_actions": ["ANSWER"]
         }
     finally:
         conn.close()
