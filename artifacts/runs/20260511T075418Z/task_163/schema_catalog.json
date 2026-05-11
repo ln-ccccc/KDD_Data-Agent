@@ -1,0 +1,85 @@
+{
+  "task_id": "task_163",
+  "question": "Identify the type of expenses and their total value approved for 'October Meeting' event.",
+  "context_dir": "/home/sxzx/lcc/KDD_Data-Agent/data/public/input/task_163/context",
+  "tables": [
+    {
+      "source_file": "temp_october_meeting_budget.csv",
+      "source_type": "csv",
+      "table_name": "temp_october_meeting_budget",
+      "columns": [
+        {
+          "name": "budget_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec1bG6HSft7XIvTP', 'recTxecmwIhCdIKvl']"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Advertisement', 'Food']"
+        }
+      ]
+    },
+    {
+      "source_file": "json/budget.json",
+      "source_type": "json",
+      "table_name": "budget",
+      "columns": [
+        {
+          "name": "r",
+          "type": "STRUCT(budget_id VARCHAR, category VARCHAR, spent DOUBLE, remaining DOUBLE, amount BIGINT, event_status VARCHAR, link_to_event VARCHAR)",
+          "sample_values_str": ""
+        }
+      ]
+    },
+    {
+      "source_file": "csv/expense.csv",
+      "source_type": "csv",
+      "table_name": "expense",
+      "columns": [
+        {
+          "name": "expense_id",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec1oMgNFt7Y0G40x', 'recc708ab2lufAlNR', 'reckyNexGnIVMiNGn', 'recpalswlVDIbuLLu', 'recBqNAd2axwvbSUd', 'recTUt9QxJ0Sp3H3m', 'recILV3eykJuWc489', 'recIudsuLiDpzK8Io', 'recPjEDS0hBq1saTk', 'recSWyiU07aPjfFYa']"
+        },
+        {
+          "name": "expense_description",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['Water, Veggie tray, supplies', 'Post Cards, Posters', 'Water, Cookies', 'Alumni Glass', 'Pizza', 'Posters', 'Parking', 'Water, chips, cookies', 'Travel Mug', 'Water, cookies, chips']"
+        },
+        {
+          "name": "expense_date",
+          "type": "DATE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "cost",
+          "type": "DOUBLE",
+          "sample_values_str": ""
+        },
+        {
+          "name": "approved",
+          "type": "BOOLEAN",
+          "sample_values_str": ""
+        },
+        {
+          "name": "link_to_member",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['rec4BLdZHS2Blfp4v', 'recro8T1MPMwRadVH', 'recD078PnS3x2doBe']"
+        },
+        {
+          "name": "link_to_budget",
+          "type": "VARCHAR",
+          "sample_values_str": "Sample values: ['recwXIiKoBMjXJsGZ', 'recTUGXxhTaFZ2qkg', 'recr60T1tLsfdICV8', 'recKjd7dcURsmP0KY', 'recN9yY7okNrFps0Y', 'recJOc7f9KgpgJm5q', 'recZAjcliIUo4BCKW', 'recRQdaiKCxFAlPCy', 'reczf4LoOK6z7oOec', 'rec5V70sIuIgpOzDT']"
+        }
+      ]
+    },
+    {
+      "source_file": "db/event.db",
+      "source_type": "sqlite",
+      "table_name": "event",
+      "sql": "",
+      "columns": []
+    }
+  ]
+}
