@@ -1,22 +1,25 @@
 import json
 from typing import Any
-from pathlib import Path
 
 from data_agent_baseline.benchmark.schema import PublicTask
 from data_agent_baseline.tools.registry import ToolExecutionResult, ToolSpec
 from data_agent_baseline.tools.filesystem import resolve_context_path
 
 TOOL_SPEC = ToolSpec(
-    name="skill_flatten_json_schema",
-    description="Skill: Quickly parses a complex nested JSON file and returns a flattened representation of its schema. Useful for understanding deeply nested JSON arrays/objects without writing custom Python code.",
+    name="skill_json_structure",
+    description=(
+        "Skill: Analyze JSON structure only when needed (complex nesting or JSON path failures). "
+        "Returns root type, array paths, date-like field samples, and numeric-string field candidates."
+    ),
     input_schema={
-        "file_path": "Relative path to the JSON file."
+        "file_path": "Relative path to the JSON file.",
+        "max_depth": "Optional max nesting depth to inspect. Default 5.",
     }
 )
 
 def TOOL_HANDLER(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
     """
-    Skill handler to flatten a JSON schema.
+    Skill handler for lightweight JSON structure analysis.
     """
     try:
         path_str = action_input.get("file_path")
@@ -30,36 +33,43 @@ def TOOL_HANDLER(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutio
         with open(full_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # Basic flattener logic
-        def flatten_schema(obj, prefix="", max_depth=5, current_depth=0):
+        max_depth = int(action_input.get("max_depth", 5))
+
+        def walk(obj: Any, prefix: str, current_depth: int, out_paths: list[str], out_samples: dict[str, str], out_numeric_strings: list[str]) -> None:
             if current_depth > max_depth:
-                return {prefix: "MAX_DEPTH_REACHED"}
-            
-            schema = {}
+                return
             if isinstance(obj, dict):
                 for k, v in obj.items():
                     new_key = f"{prefix}.{k}" if prefix else k
-                    schema.update(flatten_schema(v, new_key, max_depth, current_depth + 1))
+                    walk(v, new_key, current_depth + 1, out_paths, out_samples, out_numeric_strings)
             elif isinstance(obj, list):
-                if len(obj) > 0:
-                    schema.update(flatten_schema(obj[0], f"{prefix}[0]", max_depth, current_depth + 1))
-                else:
-                    schema[f"{prefix}[]"] = "Empty List"
-            else:
-                schema[prefix] = type(obj).__name__
-            return schema
+                out_paths.append(prefix or "$")
+                if obj:
+                    walk(obj[0], f"{prefix}[*]" if prefix else "$[*]", current_depth + 1, out_paths, out_samples, out_numeric_strings)
+            elif isinstance(obj, str):
+                # Date-like sample
+                if ("-" in obj and ":" in obj) or ("T" in obj and "Z" in obj):
+                    out_samples.setdefault(prefix, obj)
+                # Numeric string trap sample
+                compact = obj.replace(",", "").replace(".", "").replace("-", "")
+                if compact.isdigit():
+                    if prefix not in out_numeric_strings:
+                        out_numeric_strings.append(prefix)
 
-        # Handle list of objects at root
-        if isinstance(data, list) and len(data) > 0:
-            schema_out = flatten_schema(data[0], prefix="root[0]")
-        else:
-            schema_out = flatten_schema(data, prefix="root")
+        array_paths: list[str] = []
+        date_field_samples: dict[str, str] = {}
+        numeric_string_fields: list[str] = []
+        walk(data, "$", 0, array_paths, date_field_samples, numeric_string_fields)
+
+        root_type = "array" if isinstance(data, list) else "object" if isinstance(data, dict) else "scalar"
 
         return ToolExecutionResult(
             ok=True,
             content={
-                "message": "Successfully extracted flattened JSON schema.",
-                "flattened_schema": schema_out
+                "root_type": root_type,
+                "array_paths": sorted(set(array_paths)),
+                "date_field_samples": date_field_samples,
+                "numeric_string_fields": numeric_string_fields,
             }
         )
 

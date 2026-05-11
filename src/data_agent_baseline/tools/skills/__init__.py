@@ -1,6 +1,5 @@
 import importlib
 import pkgutil
-import inspect
 import sys
 from pathlib import Path
 from typing import Any

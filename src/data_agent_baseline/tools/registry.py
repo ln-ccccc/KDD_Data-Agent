@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -220,12 +220,67 @@ class ToolRegistry:
             lines.append(f"  input_schema: {spec.input_schema}")
         return "\n".join(lines)
 
+    def _run_sql_guard_skills(
+        self,
+        task: PublicTask,
+        action: str,
+        action_input: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Run deterministic guard skills for SQL actions (must-trigger rules)."""
+        if action not in {"execute_duckdb_sql", "execute_context_sql"}:
+            return {}
+        sql = str(action_input.get("sql", ""))
+        if not sql or not re.search(r"\bjoin\b", sql, flags=re.IGNORECASE):
+            return {}
+        if "skill_join_key_validator" not in self.handlers:
+            return {}
+
+        validator_input: dict[str, Any] = {
+            "sql": sql,
+            "engine": "sqlite" if action == "execute_context_sql" else "duckdb",
+        }
+        if action == "execute_context_sql" and "path" in action_input:
+            validator_input["db_path"] = str(action_input.get("path", ""))
+
+        try:
+            guard_result = self.handlers["skill_join_key_validator"](task, validator_input)
+            return {
+                "join_key_validator": {
+                    "ok": guard_result.ok,
+                    "content": guard_result.content,
+                }
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "join_key_validator": {
+                    "ok": False,
+                    "content": {
+                        "error": f"join validator execution failed: {exc}",
+                    },
+                }
+            }
+
     def execute(self, task: PublicTask, action: str, action_input: dict[str, Any]) -> ToolExecutionResult:
         """执行指定工具"""
         # 验证工具是否存在
         if action not in self.handlers:
             raise KeyError(f"Unknown tool: {action}")
-        return self.handlers[action](task, action_input)
+
+        guard_info = self._run_sql_guard_skills(task, action, action_input)
+        tool_result = self.handlers[action](task, action_input)
+        if not guard_info:
+            return tool_result
+
+        if isinstance(tool_result.content, dict):
+            merged_content = dict(tool_result.content)
+            merged_content["_skill_checks"] = guard_info
+            return ToolExecutionResult(
+                ok=tool_result.ok,
+                content=merged_content,
+                is_terminal=tool_result.is_terminal,
+                answer=tool_result.answer,
+            )
+        return tool_result
 
 
 def _search_knowledge_doc(task: PublicTask, action_input: dict[str, Any]) -> ToolExecutionResult:
@@ -259,7 +314,6 @@ def _retrieve_schema_context(task: PublicTask, action_input: dict[str, Any]) -> 
     # Alternatively, the Semantic Validator subagent can generate it in context_dir.
     # We will assume it is available in context_dir or we dynamically generate it if missing.
     from data_agent_baseline.tools.schema_catalog import build_schema_catalog
-    import json
     
     catalog_path = task.context_dir / "schema_catalog.json"
     if not catalog_path.exists():
